@@ -147,8 +147,17 @@ void	GUI::update()
 
         ImGui::Text("x = %f", pos_centered.x);
         ImGui::Text("y = %f", pos_centered.y);
-        if (ImGui::Button("Update"))
+        if (ImGui::Button("Apply Mask"))
         {
+            applyHalfMask(  this->image_renderer.getImageData(),
+                            this->image_renderer.getWidth(),
+                            this->image_renderer.getHeight(),
+                            this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
+        }
+        if (ImGui::Button("Restore Image"))
+        {
+            this->image_renderer.restoreImageData();
             this->image_renderer.redrawImage();
         }
 

@@ -14,3 +14,5 @@ void    read_shader_src(const char *fname, std::vector<char> &buffer);
 
 GLuint create_program(const char *path_vert_shader, const char *path_frag_shader);
 GLuint load_and_compile_shader(const char *fname, GLenum shaderType);
+
+void	applyHalfMask(unsigned char *image_data, const int image_width, const int image_height, const int channels);

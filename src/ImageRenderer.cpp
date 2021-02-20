@@ -132,11 +132,19 @@ void		ImageRenderer::ReadDicomImage(const std::string &fname)
 	this->channels = 3;
 	this->width = width;
 	this->height = height;
-	this->image_data = image_data_v;
+	this->image_data_original = image_data_v;
+	this->image_data = new unsigned char[width * height * 3];
+	std::copy(this->image_data_original, this->image_data_original + this->width * this->height * this->channels, this->image_data);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	delete []image_data_raw;
+}
+
+
+void	ImageRenderer::restoreImageData()
+{
+	std::copy(this->image_data_original, this->image_data_original + this->width * this->height * this->channels, this->image_data);
 }
 
 

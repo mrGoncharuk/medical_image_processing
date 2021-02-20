@@ -88,3 +88,18 @@ GLfloat *normalize_coordinates(const std::vector<float> &buf)
     return vertices_position;
 }
 
+
+void	applyLUT(unsigned char *image_data, const int image_width, const int image_height, const int channels)
+{
+
+}
+
+void	applyHalfMask(unsigned char *image_data, const int image_width, const int image_height, const int channels)
+{
+	for (int i = 0; i < image_height; i++)
+		for (int j = 0; j < image_width; j++)
+			if (j > image_width / 2)
+				for (int c = 0; c < channels; c++)
+					image_data[(i * image_width + j) * channels + c] = 0;
+	
+}

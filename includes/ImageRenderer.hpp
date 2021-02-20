@@ -25,6 +25,7 @@ private:
 	int				channels;
 	int				width;
 	int				height;
+	unsigned char	*image_data_original;
 	unsigned char	*image_data;
 
 
@@ -39,6 +40,7 @@ public:
 	void		loadImage(const std::string &imagePath);
 	void 		renderImage();
 	void		redrawImage();
+	void		restoreImageData();
 
 	unsigned char	*getImageData() const;
 	int				getChannels() const;
