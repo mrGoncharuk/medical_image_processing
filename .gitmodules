@@ -1,0 +1,6 @@
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "imebra_git"]
+	path = imebra_git
+	url = https://bitbucket.org/binarno/imebra_git.git
