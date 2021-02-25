@@ -89,16 +89,86 @@ GLfloat *normalize_coordinates(const std::vector<float> &buf)
 }
 
 
-void	applyLUT(unsigned char *image_data, const int image_width, const int image_height, const int channels)
+unsigned char	*generateLUT(bool isStandart)
 {
+	const int byteLength = 256;
+	static unsigned char LUT[byteLength];
 
+	if (isStandart)
+	{
+		for (int i = 0; i < byteLength; i++)
+			LUT[i] = i;
+	}
+	else
+	{
+		for (int i = 0; i < byteLength; i++)
+			LUT[i] = byteLength - (i + 1);
+	}
+	
+	return LUT;
 }
 
-void	applyHalfMask(unsigned char *image_data, const int image_width, const int image_height, const int channels)
+void	applyLUTRedChannel(unsigned char *image_data, unsigned char *LUT, const int image_width, const int image_height, const int channels)
 {
 	for (int i = 0; i < image_height; i++)
 		for (int j = 0; j < image_width; j++)
-			if (j > image_width / 2)
+		{
+			image_data[(i * image_width + j) * channels + 2] = LUT[image_data[(i * image_width + j) * 3]];
+			image_data[(i * image_width + j) * channels + 1] = 0;
+			image_data[(i * image_width + j) * channels + 0] = 0;
+		}
+}
+
+
+unsigned char	*generateMask(const int image_width, const int image_height, int type)
+{
+	unsigned char *mask = new unsigned char[image_width * image_height];
+
+	if (type == 0)
+	{
+		for (int i = 0; i < image_height; i++)
+			for (int j = 0; j < image_width; j++)
+				if (j >= image_width / 2)
+					mask[i * image_width + j] = 0;
+				else
+					mask[i * image_width + j] = 1;
+	}
+	else if (type == 1)
+	{
+		for (int i = 0; i < image_height; i++)
+			for (int j = 0; j < image_width; j++)
+				if (j < image_width / 2)
+					mask[i * image_width + j] = 0;
+				else
+					mask[i * image_width + j] = 1;
+	}
+	else if (type == 2)
+	{
+		for (int i = 0; i < image_height; i++)
+			for (int j = 0; j < image_width; j++)
+				if (i >= image_height / 2)
+					mask[i * image_width + j] = 0;
+				else
+					mask[i * image_width + j] = 1;
+	}
+	else if (type == 3)
+	{
+		for (int i = 0; i < image_height; i++)
+			for (int j = 0; j < image_width; j++)
+				if (i < image_height / 2)
+					mask[i * image_width + j] = 0;
+				else
+					mask[i * image_width + j] = 1;
+	}
+	return mask;
+}
+
+
+void	applyMask(unsigned char *image_data, unsigned char *mask, const int image_width, const int image_height, const int channels)
+{
+	for (int i = 0; i < image_height; i++)
+		for (int j = 0; j < image_width; j++)
+			if ( !mask[i * image_width + j] )
 				for (int c = 0; c < channels; c++)
 					image_data[(i * image_width + j) * channels + c] = 0;
 	

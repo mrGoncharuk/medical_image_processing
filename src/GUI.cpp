@@ -129,6 +129,8 @@ void	GUI::update()
 {
     // memset(&(this->flags), 0, sizeof(flags));
     static bool show_demo_window = true;
+    static int maskType = 0;
+    static bool isLUTStandart = true;
     static imebra::Image image(loadedDataSet.getImageApplyModalityTransform(0));
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -142,22 +144,35 @@ void	GUI::update()
 
         ImGui::Begin("Plotter");
 
-        ImVec2 pos = ImGui::GetMousePos();
-        ImVec2 pos_centered(pos.x - SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - pos.y);
-
-        ImGui::Text("x = %f", pos_centered.x);
-        ImGui::Text("y = %f", pos_centered.y);
-        if (ImGui::Button("Apply Mask"))
-        {
-            applyHalfMask(  this->image_renderer.getImageData(),
-                            this->image_renderer.getWidth(),
-                            this->image_renderer.getHeight(),
-                            this->image_renderer.getChannels());
-            this->image_renderer.redrawImage();
-        }
         if (ImGui::Button("Restore Image"))
         {
             this->image_renderer.restoreImageData();
+            this->image_renderer.redrawImage();
+        }
+        ImGui::RadioButton("Vertical Left", &maskType, 0);
+		ImGui::RadioButton("Vertical Right", &maskType, 1);
+		ImGui::RadioButton("Horizontal Up", &maskType, 2);
+        ImGui::RadioButton("Horizontal Down", &maskType, 3);
+        if (ImGui::Button("Apply Mask"))
+        {
+            unsigned char *mask = generateMask(this->image_renderer.getWidth(), this->image_renderer.getHeight(), maskType);
+            applyMask(  this->image_renderer.getImageData(),
+                        mask,
+                        this->image_renderer.getWidth(),
+                        this->image_renderer.getHeight(),
+                        this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
+            delete [] mask;
+        }
+
+        ImGui::Checkbox("Standart LUT(if true the LUT from 2 variant else 1 variant)", &isLUTStandart);
+        if (ImGui::Button("Apply LUT"))
+        {
+            applyLUTRedChannel( this->image_renderer.getImageData(),
+                                generateLUT(isLUTStandart),
+                                this->image_renderer.getWidth(),
+                                this->image_renderer.getHeight(),
+                                this->image_renderer.getChannels());
             this->image_renderer.redrawImage();
         }
 
