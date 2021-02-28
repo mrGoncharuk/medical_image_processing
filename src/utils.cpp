@@ -113,9 +113,9 @@ void	applyLUTRedChannel(unsigned char *image_data, unsigned char *LUT, const int
 	for (int i = 0; i < image_height; i++)
 		for (int j = 0; j < image_width; j++)
 		{
-			image_data[(i * image_width + j) * channels + 2] = LUT[image_data[(i * image_width + j) * 3]];
+			image_data[(i * image_width + j) * channels + 2] = 0;
 			image_data[(i * image_width + j) * channels + 1] = 0;
-			image_data[(i * image_width + j) * channels + 0] = 0;
+			image_data[(i * image_width + j) * channels + 0] = LUT[image_data[(i * image_width + j) * 3]];
 		}
 }
 

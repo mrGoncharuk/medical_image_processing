@@ -119,6 +119,12 @@ void		ImageRenderer::ReadDicomImage(const std::string &fname)
 	std::uint32_t 		height = image.getHeight();
 
 	std::cout << "width: " << width << " height: " << height << std::endl;
+	if (loadedDataSet.getString(imebra::TagId(0x0028, 0x1052), 0) != "0"
+		&& loadedDataSet.getString(imebra::TagId(0x0028, 0x1053), 0) != "1")
+	{
+		std::cout << "Processing image with pixels in float is not yet implemented. Exiting." << std::endl;
+		exit(1);
+	}
 	image_data_raw = new char[width * height];
 	image.getReadingDataHandler().data(image_data_raw, width * height);
 
@@ -133,9 +139,9 @@ void		ImageRenderer::ReadDicomImage(const std::string &fname)
 	this->width = width;
 	this->height = height;
 	this->image_data_original = image_data_v;
-	this->image_data = new unsigned char[width * height * 3];
+	this->image_data = new unsigned char[width * height * this->channels];
 	std::copy(this->image_data_original, this->image_data_original + this->width * this->height * this->channels, this->image_data);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	delete []image_data_raw;
@@ -150,7 +156,7 @@ void	ImageRenderer::restoreImageData()
 
 void	ImageRenderer::redrawImage()
 {
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }

@@ -56,7 +56,7 @@ bool GUI::initGL()
 #endif
 
     // Create window with graphics context
-    this->window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "MedicalVisuals", NULL, NULL);
+    this->window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Medical Image Processing", NULL, NULL);
     if (this->window == NULL)
     {
         std::cerr << "ERROR: Failed creation of window" << std::endl;
@@ -129,8 +129,8 @@ void	GUI::update()
 {
     // memset(&(this->flags), 0, sizeof(flags));
     static bool show_demo_window = true;
-    static int maskType = 0;
-    static bool isLUTStandart = true;
+    static int maskType = 4;
+    static int LUTType = 0;
     static imebra::Image image(loadedDataSet.getImageApplyModalityTransform(0));
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -142,37 +142,54 @@ void	GUI::update()
 
     {
 
-        ImGui::Begin("Plotter");
+        ImGui::Begin("Image Operations");
 
         if (ImGui::Button("Restore Image"))
         {
             this->image_renderer.restoreImageData();
             this->image_renderer.redrawImage();
+            maskType = 4;
+            LUTType = 0;
         }
         ImGui::RadioButton("Vertical Left", &maskType, 0);
 		ImGui::RadioButton("Vertical Right", &maskType, 1);
 		ImGui::RadioButton("Horizontal Up", &maskType, 2);
         ImGui::RadioButton("Horizontal Down", &maskType, 3);
+        ImGui::RadioButton("None", &maskType, 4);
         if (ImGui::Button("Apply Mask"))
         {
-            unsigned char *mask = generateMask(this->image_renderer.getWidth(), this->image_renderer.getHeight(), maskType);
-            applyMask(  this->image_renderer.getImageData(),
-                        mask,
-                        this->image_renderer.getWidth(),
-                        this->image_renderer.getHeight(),
-                        this->image_renderer.getChannels());
-            this->image_renderer.redrawImage();
-            delete [] mask;
+            if (maskType == 4)
+            {
+                this->image_renderer.restoreImageData();
+                this->image_renderer.redrawImage();
+            }
+            else
+            {
+                unsigned char *mask = generateMask(this->image_renderer.getWidth(), this->image_renderer.getHeight(), maskType);
+                applyMask(  this->image_renderer.getImageData(),
+                            mask,
+                            this->image_renderer.getWidth(),
+                            this->image_renderer.getHeight(),
+                            this->image_renderer.getChannels());
+                this->image_renderer.redrawImage();
+                delete [] mask;
+            }
         }
 
-        ImGui::Checkbox("Standart LUT(if true the LUT from 2 variant else 1 variant)", &isLUTStandart);
+        ImGui::RadioButton("Standart Image", &LUTType, 0);
+		ImGui::RadioButton("Default LUT(0..255)", &LUTType, 1);
+		ImGui::RadioButton("Inversed LUT(255..0)", &LUTType, 2);
+
         if (ImGui::Button("Apply LUT"))
         {
-            applyLUTRedChannel( this->image_renderer.getImageData(),
-                                generateLUT(isLUTStandart),
-                                this->image_renderer.getWidth(),
-                                this->image_renderer.getHeight(),
-                                this->image_renderer.getChannels());
+            if (!LUTType)
+                this->image_renderer.restoreImageData();
+            else
+                applyLUTRedChannel( this->image_renderer.getImageData(),
+                                    generateLUT(LUTType == 1 ? 1 : 0),
+                                    this->image_renderer.getWidth(),
+                                    this->image_renderer.getHeight(),
+                                    this->image_renderer.getChannels());
             this->image_renderer.redrawImage();
         }
 
@@ -200,7 +217,6 @@ void	GUI::render()
     // glMatrixMode(GL_PROJECTION)
     glClear(GL_COLOR_BUFFER_BIT);
     image_renderer.renderImage();
-
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

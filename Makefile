@@ -5,7 +5,7 @@ IMPL_DIR = imgui/backends/
 IMGUI_DIR = imgui/
 OBJ_DIR = obj/
 SRC_DIR = src/
-NAME = MedicalVisuals
+NAME = MIP
 SRC = 	main.cpp \
 		GUI.cpp \
 		utils.cpp \
