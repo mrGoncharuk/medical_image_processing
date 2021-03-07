@@ -2,9 +2,6 @@
 
 using namespace std;
 
-#define MIN(a,b) ((a)<(b)?(a):(b))
-#define MAX(a,b) ((a)>(b)?(a):(b))
-
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -131,9 +128,7 @@ void	GUI::update()
 {
     // memset(&(this->flags), 0, sizeof(flags));
     static bool show_demo_window = true;
-    static int maskType = 4;
-    static int LUTType = 0;
-
+    static bool origHistIsReady = false;
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -150,115 +145,75 @@ void	GUI::update()
     {
         ImGui::Begin("Histogram transformation");
 
-        static float red[256] = {0};
-        static float blue[256] = {0};
-        static float green[256] = {0};
-        static float gray[256] = {0};
 
-        static float max_red = 0.0f;
-        static float max_green = 0.0f;
-        static float max_blue = 0.0f;
-        static float max_gray = 0.0f;
+        static float gray_orig[256] = {0};
+        static float max_gray_orig = 0.0f;
+        static float gray_current[256] = {0};
+        static float max_gray_current = 0.0f;
         
-        if (ImGui::Button("Build histogram"))
+        if (!origHistIsReady)
         {
             int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
             const unsigned char *image_data = this->image_renderer.getImageData();
-            const float r_gray = 0.3;
-            const float g_gray = 0.6;
-            const float b_gray = 0.1;
 
-            memset(red, 0, sizeof(float) * 256);
-            memset(green, 0, sizeof(float) * 256);
-            memset(blue, 0, sizeof(float) * 256);
-            memset(gray, 0, sizeof(float) * 256);
-
-            for(int i=0; i < length; i += this->image_renderer.getChannels())
-            {
-                red[image_data[i]] += 1.0f;
-                green[image_data[i+1]] += 1.0f;
-                blue[image_data[i+2]] += 1.0f;
-                int grayscale = roundf((image_data[i] * r_gray) + (image_data[i+1] * g_gray) +
-                    (image_data[i+2] * b_gray));
-                gray[grayscale] += + 1.0f;
-            }
-            // red[0] = 0;
-            // green[0] = 0;
-            // blue[0] = 0;
-            // gray[0] = 0;
-
-            // compute max
-            for(int i=0; i < 256; i++)
-            {
-                max_red = MAX(red[i], max_red);
-                max_green = MAX(green[i], max_green);
-                max_blue = MAX(blue[i], max_blue);
-                max_gray = MAX(gray[i], max_gray);
-            }
+            // memset(gray_orig, 0, sizeof(float) * 256);
+            countHistogram(this->image_renderer.getImageData(),
+                            this->image_renderer.getWidth() * this->image_renderer.getHeight(),
+                            this->image_renderer.getChannels(),
+                            gray_orig, &max_gray_orig);
+            
+            origHistIsReady = true;
         }
-
-        ImGui::PlotHistogram("", red, 256, 0, "RED Histogram", 0.0f, max_red, ImVec2(400, 250));
-        ImGui::SameLine();
-        ImGui::PlotHistogram("", green, 256, 0,"GREEN Histogram", 0.0f, max_green,
-        ImVec2(400,250));
-        ImGui::PlotHistogram("", blue, 256, 0, "BLUE Histogram", 0.0f, max_blue, ImVec2(400,250));
-        ImGui::SameLine();
-        ImGui::PlotHistogram("", gray, 256, 0, "GRAY Histogram", 0.0f, max_gray, ImVec2(400,250));
-
-        ImGui::End();
-    }
-
-    {
-        ImGui::Begin("Image Operations");
-
         if (ImGui::Button("Restore Image"))
         {
             this->image_renderer.restoreImageData();
             this->image_renderer.redrawImage();
-            maskType = 4;
-            LUTType = 0;
         }
-        ImGui::RadioButton("Vertical Left", &maskType, 0);
-		ImGui::RadioButton("Vertical Right", &maskType, 1);
-		ImGui::RadioButton("Horizontal Up", &maskType, 2);
-        ImGui::RadioButton("Horizontal Down", &maskType, 3);
-        ImGui::RadioButton("None", &maskType, 4);
-        if (ImGui::Button("Apply Mask"))
+        if (ImGui::Button("Equalization"))
         {
-            if (maskType == 4)
-            {
-                this->image_renderer.restoreImageData();
-                this->image_renderer.redrawImage();
-            }
-            else
-            {
-                unsigned char *mask = generateMask(this->image_renderer.getWidth(), this->image_renderer.getHeight(), maskType);
-                applyMask(  this->image_renderer.getImageData(),
-                            mask,
-                            this->image_renderer.getWidth(),
-                            this->image_renderer.getHeight(),
-                            this->image_renderer.getChannels());
-                this->image_renderer.redrawImage();
-                delete [] mask;
-            }
-        }
+            histogramEqualisation(this->image_renderer.getImageData(),
+                                this->image_renderer.getWidth(),
+                                this->image_renderer.getHeight(),
+                                this->image_renderer.getChannels());
+            
+            int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
+            const unsigned char *image_data = this->image_renderer.getImageData();
 
-        ImGui::RadioButton("Standart Image", &LUTType, 0);
-		ImGui::RadioButton("Default LUT(0..255)", &LUTType, 1);
-		ImGui::RadioButton("Inversed LUT(255..0)", &LUTType, 2);
-
-        if (ImGui::Button("Apply LUT"))
-        {
-            if (!LUTType)
-                this->image_renderer.restoreImageData();
-            else
-                applyLUTRedChannel( this->image_renderer.getImageData(),
-                                    generateLUT(LUTType == 1 ? 1 : 0),
-                                    this->image_renderer.getWidth(),
-                                    this->image_renderer.getHeight(),
-                                    this->image_renderer.getChannels());
+            // memset(gray_orig, 0, sizeof(float) * 256);
+            countHistogram(this->image_renderer.getImageData(),
+                            this->image_renderer.getWidth() * this->image_renderer.getHeight(),
+                            this->image_renderer.getChannels(),
+                            gray_current, &max_gray_current);
+            
             this->image_renderer.redrawImage();
         }
+
+        static int peakRange[2] = { 80, 120 };
+        static int newMin = 127;
+        static int newMax = 255;
+
+        ImGui::InputInt2("Peak selection range", peakRange);
+        ImGui::InputInt("New Minimum value", &newMin);
+        ImGui::InputInt("New Maximum value", &newMax);
+
+        if (ImGui::Button("Normalize"))
+        {
+            peakNormalization(this->image_renderer.getImageData(),
+                                this->image_renderer.getWidth(),
+                                this->image_renderer.getHeight(),
+                                this->image_renderer.getChannels(),
+                                newMin, newMax, peakRange);
+            countHistogram(this->image_renderer.getImageData(),
+                                this->image_renderer.getWidth() * this->image_renderer.getHeight(),
+                                this->image_renderer.getChannels(),
+                                gray_current, &max_gray_current);
+            this->image_renderer.redrawImage();
+            
+        }
+        ImGui::PlotHistogram("", gray_orig, 256, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
+        ImGui::SameLine();
+        ImGui::PlotHistogram("", gray_current, 256, 0, "Current Image Histogram", 0.0f, max_gray_current, ImVec2(400,250));
+
         ImGui::End();
     }
 }
@@ -267,7 +222,6 @@ void	GUI::update()
 
 void	GUI::render()
 {
-    static char buf[3];
     ImGui::Render();
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);
