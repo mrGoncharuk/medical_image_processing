@@ -2,6 +2,8 @@
 
 using namespace std;
 
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -131,7 +133,6 @@ void	GUI::update()
     static bool show_demo_window = true;
     static int maskType = 4;
     static int LUTType = 0;
-    static imebra::Image image(loadedDataSet.getImageApplyModalityTransform(0));
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -140,8 +141,74 @@ void	GUI::update()
     // if (show_demo_window)
     //     ImGui::ShowDemoWindow(&show_demo_window);
 
-    {
+    // {
+    //     ImGui::Begin("Image")
+    //     ImGui::Image((void*)(intptr_t)this->my_image_texture, ImVec2(width, height));
+    //     ImGui::End();
+    // }
 
+    {
+        ImGui::Begin("Histogram transformation");
+
+        static float red[256] = {0};
+        static float blue[256] = {0};
+        static float green[256] = {0};
+        static float gray[256] = {0};
+
+        static float max_red = 0.0f;
+        static float max_green = 0.0f;
+        static float max_blue = 0.0f;
+        static float max_gray = 0.0f;
+        
+        if (ImGui::Button("Build histogram"))
+        {
+            int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
+            const unsigned char *image_data = this->image_renderer.getImageData();
+            const float r_gray = 0.3;
+            const float g_gray = 0.6;
+            const float b_gray = 0.1;
+
+            memset(red, 0, sizeof(float) * 256);
+            memset(green, 0, sizeof(float) * 256);
+            memset(blue, 0, sizeof(float) * 256);
+            memset(gray, 0, sizeof(float) * 256);
+
+            for(int i=0; i < length; i += this->image_renderer.getChannels())
+            {
+                red[image_data[i]] += 1.0f;
+                green[image_data[i+1]] += 1.0f;
+                blue[image_data[i+2]] += 1.0f;
+                int grayscale = roundf((image_data[i] * r_gray) + (image_data[i+1] * g_gray) +
+                    (image_data[i+2] * b_gray));
+                gray[grayscale] += + 1.0f;
+            }
+            // red[0] = 0;
+            // green[0] = 0;
+            // blue[0] = 0;
+            // gray[0] = 0;
+
+            // compute max
+            for(int i=0; i < 256; i++)
+            {
+                max_red = MAX(red[i], max_red);
+                max_green = MAX(green[i], max_green);
+                max_blue = MAX(blue[i], max_blue);
+                max_gray = MAX(gray[i], max_gray);
+            }
+        }
+
+        ImGui::PlotHistogram("", red, 256, 0, "RED Histogram", 0.0f, max_red, ImVec2(400, 250));
+        ImGui::SameLine();
+        ImGui::PlotHistogram("", green, 256, 0,"GREEN Histogram", 0.0f, max_green,
+        ImVec2(400,250));
+        ImGui::PlotHistogram("", blue, 256, 0, "BLUE Histogram", 0.0f, max_blue, ImVec2(400,250));
+        ImGui::SameLine();
+        ImGui::PlotHistogram("", gray, 256, 0, "GRAY Histogram", 0.0f, max_gray, ImVec2(400,250));
+
+        ImGui::End();
+    }
+
+    {
         ImGui::Begin("Image Operations");
 
         if (ImGui::Button("Restore Image"))
@@ -192,15 +259,8 @@ void	GUI::update()
                                     this->image_renderer.getChannels());
             this->image_renderer.redrawImage();
         }
-
-        // ImGui::Image((void*)(intptr_t)this->my_image_texture, ImVec2(500, 500));
         ImGui::End();
     }
-
-
-    static bool isProcessed = false;
-    static char *image_data = NULL;
-
 }
 
 

@@ -46,6 +46,7 @@ public:
 	int				getChannels() const;
 	int				getWidth() const;
 	int				getHeight() const;
+	GLuint 			*getTextureId() ;
 
 };
 

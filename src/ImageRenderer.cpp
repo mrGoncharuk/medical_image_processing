@@ -42,9 +42,9 @@ void		ImageRenderer::loadImage(const std::string &imagePath)
 
 	// 1 square (made by 2 triangles) to be rendered
 	GLfloat vertices_position[8] = {
-		-1.0, 0.0,
-		0.0, 0.0,
-		0.0, 1.0,
+		-1.0, 0.5,
+		-0.5, 0.5,
+		-0.5, 1.0,
 		-1.0, 1.0,
 				
 	};
@@ -177,6 +177,8 @@ unsigned char	*ImageRenderer::getImageData() const { return (this->image_data); 
 int		ImageRenderer::getChannels() const { return (this->channels); }
 int		ImageRenderer::getWidth() const { return (this->width); }
 int		ImageRenderer::getHeight() const { return (this->height); }
+GLuint 	*ImageRenderer::getTextureId()  { return &(this->textureID); }
+
 
 
 
