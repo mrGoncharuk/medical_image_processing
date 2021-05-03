@@ -25,8 +25,8 @@ private:
 	int				channels;
 	int				width;
 	int				height;
-	unsigned char	*image_data_original;
-	unsigned char	*image_data;
+	unsigned short	*image_data_original;
+	unsigned short	*image_data;
 
 
 private:
@@ -42,7 +42,7 @@ public:
 	void		redrawImage();
 	void		restoreImageData();
 
-	unsigned char	*getImageData() const;
+	unsigned short	*getImageData() const;
 	int				getChannels() const;
 	int				getWidth() const;
 	int				getHeight() const;

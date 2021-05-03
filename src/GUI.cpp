@@ -9,7 +9,7 @@ static void glfw_error_callback(int error, const char* description)
 
 
 GUI::GUI(/* args */): clearColor(0.45f, 0.55f, 0.60f, 1.00f)
-                    , loadedDataSet(imebra::CodecFactory::load("data/copy_of_DICOM_Image_for_Lab_2.dcm"))
+                    , loadedDataSet(imebra::CodecFactory::load("data/DICOM_Image_for_Lab_2.dcm"))
 {
 
 }
@@ -93,7 +93,7 @@ bool GUI::initGL()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     image_renderer.createShaderProgram("shaders/vert.shader", "shaders/frag.shader");
-    image_renderer.loadImage("data/copy_of_DICOM_Image_for_Lab_2.dcm");
+    image_renderer.loadImage("data/Lab2-6DICOM_single_16bits/DICOM_Image_16b.dcm");
 
 
 // Setup Dear ImGui context
@@ -146,15 +146,15 @@ void	GUI::update()
         ImGui::Begin("Histogram transformation");
 
 
-        static float gray_orig[256] = {0};
+        static float gray_orig[65536] = {0};
         static float max_gray_orig = 0.0f;
-        static float gray_current[256] = {0};
+        static float gray_current[65536] = {0};
         static float max_gray_current = 0.0f;
         
         if (!origHistIsReady)
         {
             int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
-            const unsigned char *image_data = this->image_renderer.getImageData();
+            const unsigned short *image_data = this->image_renderer.getImageData();
 
             // memset(gray_orig, 0, sizeof(float) * 256);
             countHistogram(this->image_renderer.getImageData(),
@@ -177,7 +177,7 @@ void	GUI::update()
                                 this->image_renderer.getChannels());
             
             int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
-            const unsigned char *image_data = this->image_renderer.getImageData();
+            const unsigned short *image_data = this->image_renderer.getImageData();
 
             // memset(gray_orig, 0, sizeof(float) * 256);
             countHistogram(this->image_renderer.getImageData(),
@@ -188,9 +188,9 @@ void	GUI::update()
             this->image_renderer.redrawImage();
         }
 
-        static int peakRange[2] = { 80, 120 };
-        static int newMin = 127;
-        static int newMax = 255;
+        static int peakRange[2] = { 300, 1000 };
+        static int newMin = 65535 / 2;
+        static int newMax = 65535;
 
         ImGui::InputInt2("Peak selection range", peakRange);
         ImGui::InputInt("New Minimum value", &newMin);
@@ -210,9 +210,9 @@ void	GUI::update()
             this->image_renderer.redrawImage();
             
         }
-        ImGui::PlotHistogram("", gray_orig, 256, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
+        ImGui::PlotHistogram("", gray_orig, 65536, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
         ImGui::SameLine();
-        ImGui::PlotHistogram("", gray_current, 256, 0, "Current Image Histogram", 0.0f, max_gray_current, ImVec2(400,250));
+        ImGui::PlotHistogram("", gray_current, 65536, 0, "Current Image Histogram", 0.0f, max_gray_current, ImVec2(400,250));
 
         ImGui::End();
     }

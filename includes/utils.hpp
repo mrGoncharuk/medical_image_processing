@@ -19,11 +19,6 @@ GLuint create_program(const char *path_vert_shader, const char *path_frag_shader
 GLuint load_and_compile_shader(const char *fname, GLenum shaderType);
 
 
-void	        applyLUTRedChannel(unsigned char *image_data, unsigned char *LUT, const int image_width, const int image_height, const int channels);
-unsigned char	*generateLUT(bool isStandart);
-void	        applyMask(unsigned char *image_data, unsigned char *mask, const int image_width, const int image_height, const int channels);
-unsigned char	*generateMask(const int image_width, const int image_height, int type);
-
-void	countHistogram(const unsigned char *image_data, int length, int channels, float hist[], float *maxVal);
-unsigned char	*histogramEqualisation(unsigned char* image_data, int cols, int rows, int channels);
-void	        peakNormalization(unsigned char* image_data, int width, int heigth, int channels, int newMin, int newMax, int peakRange[2]);
+void	countHistogram(const unsigned short *image_data, int length, int channels, float hist[], float *maxVal);
+unsigned short	*histogramEqualisation(unsigned short* image_data, int cols, int rows, int channels);
+void	        peakNormalization(unsigned short* image_data, int width, int heigth, int channels, int newMin, int newMax, int peakRange[2]);

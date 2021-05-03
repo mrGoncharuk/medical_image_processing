@@ -111,8 +111,8 @@ void		ImageRenderer::loadImage(const std::string &imagePath)
 
 void		ImageRenderer::ReadDicomImage(const std::string &fname)
 {
-	char 				*image_data_raw = NULL;
-	unsigned char		*image_data_v = NULL;
+	unsigned short 				*image_data_raw = NULL;
+	unsigned short		*image_data_v = NULL;
 	imebra::DataSet 	loadedDataSet(imebra::CodecFactory::load(fname));
 	imebra::Image		image(loadedDataSet.getImage(0));
 	std::uint32_t 		width = image.getWidth();
@@ -125,23 +125,24 @@ void		ImageRenderer::ReadDicomImage(const std::string &fname)
 		std::cout << "Processing image with pixels in float is not yet implemented. Exiting." << std::endl;
 		exit(1);
 	}
-	image_data_raw = new char[width * height];
-	image.getReadingDataHandler().data(image_data_raw, width * height);
-
-	image_data_v = new unsigned char[width * height * 3];
+	image_data_raw = new unsigned short[width * height];
+	image.getReadingDataHandler().data((char *)image_data_raw, width * height*2);
+	std::cout << loadedDataSet.getDouble(imebra::TagId(0x028, 0x101), 0) << std::endl;
+	image_data_v = new unsigned short[width * height * 3];
 	for (size_t i = 0; i < width * height; i++)
 	{
 		image_data_v[i * 3] = image_data_raw[i];
 		image_data_v[i * 3 + 1] = image_data_raw[i];
 		image_data_v[i * 3 + 2] = image_data_raw[i];
 	}
+
 	this->channels = 3;
 	this->width = width;
 	this->height = height;
 	this->image_data_original = image_data_v;
-	this->image_data = new unsigned char[width * height * this->channels];
+	this->image_data = new unsigned short[width * height * this->channels];
 	std::copy(this->image_data_original, this->image_data_original + this->width * this->height * this->channels, this->image_data);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_SHORT, (GLvoid*)image_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	delete []image_data_raw;
@@ -156,7 +157,7 @@ void	ImageRenderer::restoreImageData()
 
 void	ImageRenderer::redrawImage()
 {
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)image_data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_SHORT, (GLvoid*)image_data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
@@ -173,7 +174,7 @@ void 		ImageRenderer::renderImage()
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-unsigned char	*ImageRenderer::getImageData() const { return (this->image_data); }
+unsigned short	*ImageRenderer::getImageData() const { return (this->image_data); }
 int		ImageRenderer::getChannels() const { return (this->channels); }
 int		ImageRenderer::getWidth() const { return (this->width); }
 int		ImageRenderer::getHeight() const { return (this->height); }
