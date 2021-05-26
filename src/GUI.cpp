@@ -146,11 +146,15 @@ void	GUI::update()
         ImGui::Begin("Histogram transformation");
 
 
-        static float gray_orig[65536] = {0};
+        static float gray_orig[1024] = {0};
         static float max_gray_orig = 0.0f;
         static float gray_current[65536] = {0};
         static float max_gray_current = 0.0f;
-        
+        static int peakRange[2] = { 300, 1000 };
+        static int newMinPercent = 50;
+        static int newMaxPercent = 100;
+        static bool performEqualization = false;
+
         if (!origHistIsReady)
         {
             int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
@@ -161,7 +165,9 @@ void	GUI::update()
                             this->image_renderer.getWidth() * this->image_renderer.getHeight(),
                             this->image_renderer.getChannels(),
                             gray_orig, &max_gray_orig);
-            
+            max_gray_current = max_gray_orig;
+            for (int i = 0; i < sizeof(gray_orig) / sizeof(float); i++)
+                gray_current[i] = gray_orig[i];
             origHistIsReady = true;
         }
         if (ImGui::Button("Restore Image"))
@@ -169,16 +175,16 @@ void	GUI::update()
             this->image_renderer.restoreImageData();
             this->image_renderer.redrawImage();
         }
-        if (ImGui::Button("Equalization"))
+
+        if (ImGui::Checkbox("Equalization", &performEqualization))
         {
             histogramEqualisation(this->image_renderer.getImageData(),
                                 this->image_renderer.getWidth(),
                                 this->image_renderer.getHeight(),
                                 this->image_renderer.getChannels());
             
-            int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
             const unsigned short *image_data = this->image_renderer.getImageData();
-
+            gray_current[65536] = {0};
             // memset(gray_orig, 0, sizeof(float) * 256);
             countHistogram(this->image_renderer.getImageData(),
                             this->image_renderer.getWidth() * this->image_renderer.getHeight(),
@@ -187,33 +193,53 @@ void	GUI::update()
             
             this->image_renderer.redrawImage();
         }
-
-        static int peakRange[2] = { 300, 1000 };
-        static int newMin = 65535 / 2;
-        static int newMax = 65535;
-
-        ImGui::InputInt2("Peak selection range", peakRange);
-        ImGui::InputInt("New Minimum value", &newMin);
-        ImGui::InputInt("New Maximum value", &newMax);
-
+        ImGui::InputInt("New Minimum value %", &newMinPercent);
+        ImGui::InputInt("New Maximum value %", &newMaxPercent);
+        // ImGui::SliderInt("Peak begin", peakRange, 0, 1024);
+        ImGui::SetNextItemWidth(400);
+        // ImGui::SliderInt("Peak end", peakRange+1, 0, 1024 || ImGui::SliderInt("Peak begin", peakRange, 0, 1024) ||ImGui::SliderInt("Peak begin", peakRange, 0, 1024));
+        bool performNormalization = false;
+        ImGui::SetNextItemWidth(400);
+        if (ImGui::SliderInt("Peak begin", peakRange, 0, 1024))
+            performNormalization = true;
+        ImGui::SetNextItemWidth(400);
+        if (ImGui::SliderInt("Peak End", &peakRange[1], 0, 1024))
+            performNormalization = true;
+        
         if (ImGui::Button("Normalize"))
+            performNormalization = true;
+        if (performNormalization)
         {
+            this->image_renderer.restoreImageData();
+            this->image_renderer.redrawImage();
+            int newMin = 0, newMax = 0;
+            newMin = newMinPercent * 65536 / 100;
+            newMax = newMaxPercent * 65536 / 100;
+            gray_current[65536] = {0};
             peakNormalization(this->image_renderer.getImageData(),
                                 this->image_renderer.getWidth(),
                                 this->image_renderer.getHeight(),
                                 this->image_renderer.getChannels(),
                                 newMin, newMax, peakRange);
+
+            if (performEqualization)
+                histogramEqualisation(this->image_renderer.getImageData(),
+                                    this->image_renderer.getWidth(),
+                                    this->image_renderer.getHeight(),
+                                    this->image_renderer.getChannels());
             countHistogram(this->image_renderer.getImageData(),
                                 this->image_renderer.getWidth() * this->image_renderer.getHeight(),
                                 this->image_renderer.getChannels(),
                                 gray_current, &max_gray_current);
-            this->image_renderer.redrawImage();
             
+            
+            this->image_renderer.redrawImage();
+            performNormalization = false;
         }
-        ImGui::PlotHistogram("", gray_orig, 65536, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
+        ImGui::PlotHistogram("", gray_orig, 1024, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
         ImGui::SameLine();
         ImGui::PlotHistogram("", gray_current, 65536, 0, "Current Image Histogram", 0.0f, max_gray_current, ImVec2(400,250));
-
+        ImGui::Text("0");ImGui::SameLine(380);ImGui::Text("1024   0");ImGui::SameLine(792);ImGui::Text("65536");
         ImGui::End();
     }
 }
