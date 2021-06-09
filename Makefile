@@ -9,7 +9,8 @@ NAME = MIP
 SRC = 	main.cpp \
 		GUI.cpp \
 		utils.cpp \
-		ImageRenderer.cpp
+		ImageRenderer.cpp \
+		gaus_blur.cpp
 
 
 SOURCES = $(addprefix $(SRC_DIR), $(SRC))

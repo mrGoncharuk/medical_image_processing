@@ -132,16 +132,6 @@ void	GUI::update()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    // if (show_demo_window)
-    //     ImGui::ShowDemoWindow(&show_demo_window);
-
-    // {
-    //     ImGui::Begin("Image")
-    //     ImGui::Image((void*)(intptr_t)this->my_image_texture, ImVec2(width, height));
-    //     ImGui::End();
-    // }
-
     {
         ImGui::Begin("Histogram transformation");
 
@@ -193,6 +183,7 @@ void	GUI::update()
             
             this->image_renderer.redrawImage();
         }
+
         ImGui::InputInt("New Minimum value %", &newMinPercent);
         ImGui::InputInt("New Maximum value %", &newMaxPercent);
         // ImGui::SliderInt("Peak begin", peakRange, 0, 1024);
@@ -205,10 +196,42 @@ void	GUI::update()
         ImGui::SetNextItemWidth(400);
         if (ImGui::SliderInt("Peak End", &peakRange[1], 0, 1024))
             performNormalization = true;
-        
-        if (ImGui::Button("Normalize"))
-            performNormalization = true;
-        if (performNormalization)
+
+
+        if (ImGui::Button("Normalize")) 
+           performNormalization = true;
+       if (performNormalization)
+       {
+           this->image_renderer.restoreImageData();
+           this->image_renderer.redrawImage();
+           int newMin = 0, newMax = 0;
+           newMin = newMinPercent * 65536 / 100;
+           newMax = newMaxPercent * 65536 / 100;
+           gray_current[65536] = {0};
+           peakNormalization(this->image_renderer.getImageData(),
+                               this->image_renderer.getWidth(),
+                               this->image_renderer.getHeight(),
+                               this->image_renderer.getChannels(),
+                               newMin, newMax, peakRange);
+ 
+           if (performEqualization)
+               histogramEqualisation(this->image_renderer.getImageData(),
+                                   this->image_renderer.getWidth(),
+                                   this->image_renderer.getHeight(),
+                                   this->image_renderer.getChannels());
+           countHistogram(this->image_renderer.getImageData(),
+                               this->image_renderer.getWidth() * this->image_renderer.getHeight(),
+                               this->image_renderer.getChannels(),
+                               gray_current, &max_gray_current);
+          
+          
+           this->image_renderer.redrawImage();
+           performNormalization = false;
+       }
+
+
+        static float sigma = 3.;
+        if (ImGui::SliderFloat("Sigma", &sigma, 0.f, 5.f))
         {
             this->image_renderer.restoreImageData();
             this->image_renderer.redrawImage();
@@ -216,25 +239,27 @@ void	GUI::update()
             newMin = newMinPercent * 65536 / 100;
             newMax = newMaxPercent * 65536 / 100;
             gray_current[65536] = {0};
+            
             peakNormalization(this->image_renderer.getImageData(),
                                 this->image_renderer.getWidth(),
                                 this->image_renderer.getHeight(),
                                 this->image_renderer.getChannels(),
                                 newMin, newMax, peakRange);
 
-            if (performEqualization)
-                histogramEqualisation(this->image_renderer.getImageData(),
-                                    this->image_renderer.getWidth(),
-                                    this->image_renderer.getHeight(),
-                                    this->image_renderer.getChannels());
+            histogramEqualisation(this->image_renderer.getImageData(),
+                                this->image_renderer.getWidth(),
+                                this->image_renderer.getHeight(),
+                                this->image_renderer.getChannels());
+            gaus_blur(this->image_renderer.getImageData(),
+                            this->image_renderer.getWidth(),
+                             this->image_renderer.getHeight(),
+                            this->image_renderer.getChannels(),
+                            sigma);
             countHistogram(this->image_renderer.getImageData(),
                                 this->image_renderer.getWidth() * this->image_renderer.getHeight(),
                                 this->image_renderer.getChannels(),
                                 gray_current, &max_gray_current);
-            
-            
             this->image_renderer.redrawImage();
-            performNormalization = false;
         }
         ImGui::PlotHistogram("", gray_orig, 1024, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
         ImGui::SameLine();
