@@ -150,10 +150,9 @@ void	GUI::update()
         static float max_gray_orig = 0.0f;
         static float gray_current[65536] = {0};
         static float max_gray_current = 0.0f;
-        static int peakRange[2] = { 300, 1000 };
-        static int newMinPercent = 50;
-        static int newMaxPercent = 100;
-        static bool performEqualization = false;
+  
+        static int threshold = 0;
+        static unsigned short *segmented_image = new unsigned short[this->image_renderer.getWidth() * this->image_renderer.getHeight()];
 
         if (!origHistIsReady)
         {
@@ -170,76 +169,89 @@ void	GUI::update()
                 gray_current[i] = gray_orig[i];
             origHistIsReady = true;
         }
+
         if (ImGui::Button("Restore Image"))
         {
             this->image_renderer.restoreImageData();
             this->image_renderer.redrawImage();
         }
 
-        if (ImGui::Checkbox("Equalization", &performEqualization))
-        {
-            histogramEqualisation(this->image_renderer.getImageData(),
-                                this->image_renderer.getWidth(),
-                                this->image_renderer.getHeight(),
-                                this->image_renderer.getChannels());
-            
-            const unsigned short *image_data = this->image_renderer.getImageData();
-            gray_current[65536] = {0};
-            // memset(gray_orig, 0, sizeof(float) * 256);
-            countHistogram(this->image_renderer.getImageData(),
-                            this->image_renderer.getWidth() * this->image_renderer.getHeight(),
-                            this->image_renderer.getChannels(),
-                            gray_current, &max_gray_current);
-            
-            this->image_renderer.redrawImage();
-        }
-        ImGui::InputInt("New Minimum value %", &newMinPercent);
-        ImGui::InputInt("New Maximum value %", &newMaxPercent);
-        // ImGui::SliderInt("Peak begin", peakRange, 0, 1024);
-        ImGui::SetNextItemWidth(400);
-        // ImGui::SliderInt("Peak end", peakRange+1, 0, 1024 || ImGui::SliderInt("Peak begin", peakRange, 0, 1024) ||ImGui::SliderInt("Peak begin", peakRange, 0, 1024));
-        bool performNormalization = false;
-        ImGui::SetNextItemWidth(400);
-        if (ImGui::SliderInt("Peak begin", peakRange, 0, 1024))
-            performNormalization = true;
-        ImGui::SetNextItemWidth(400);
-        if (ImGui::SliderInt("Peak End", &peakRange[1], 0, 1024))
-            performNormalization = true;
-        
-        if (ImGui::Button("Normalize"))
-            performNormalization = true;
-        if (performNormalization)
+        if (ImGui::Button("Equalization"))
         {
             this->image_renderer.restoreImageData();
-            this->image_renderer.redrawImage();
-            int newMin = 0, newMax = 0;
-            newMin = newMinPercent * 65536 / 100;
-            newMax = newMaxPercent * 65536 / 100;
-            gray_current[65536] = {0};
-            peakNormalization(this->image_renderer.getImageData(),
-                                this->image_renderer.getWidth(),
-                                this->image_renderer.getHeight(),
-                                this->image_renderer.getChannels(),
-                                newMin, newMax, peakRange);
-
-            if (performEqualization)
-                histogramEqualisation(this->image_renderer.getImageData(),
+            equalizeHistogram(this->image_renderer.getImageData(),
                                     this->image_renderer.getWidth(),
                                     this->image_renderer.getHeight(),
-                                    this->image_renderer.getChannels());
+                                    this->image_renderer.getChannels(), USHRT_MAX);
             countHistogram(this->image_renderer.getImageData(),
-                                this->image_renderer.getWidth() * this->image_renderer.getHeight(),
+                                this->image_renderer.getWidth() * this->image_renderer.getHeight()*3,
                                 this->image_renderer.getChannels(),
                                 gray_current, &max_gray_current);
-            
-            
             this->image_renderer.redrawImage();
-            performNormalization = false;
         }
+
+        if (ImGui::SliderInt("Threshold", &threshold, 0, USHRT_MAX))
+        {
+            int image_length = this->image_renderer.getWidth()* this->image_renderer.getHeight();
+            unsigned short *input_image = new unsigned short[image_length];
+            this->image_renderer.restoreImageData();
+            equalizeHistogram(this->image_renderer.getImageData(),
+                                    this->image_renderer.getWidth(),
+                                    this->image_renderer.getHeight(),
+                                    this->image_renderer.getChannels(), USHRT_MAX);
+
+            for (int i = 0; i < image_length; i++) segmented_image[i] = 0;
+            initSingleChannelImage(this->image_renderer.getImageData(), input_image, image_length, this->image_renderer.getChannels());
+            computeOtsusSegmentation(input_image, segmented_image, this->image_renderer.getWidth(), this->image_renderer.getHeight(), threshold);
+            initMultiChannelImage(this->image_renderer.getImageData(), segmented_image, image_length, this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
+            delete [] input_image;                        
+        }
+
+        if (ImGui::Button("Apply Segmentation Mask"))
+        {
+            applyMask(this->image_renderer.getImageData(),
+                        segmented_image,
+                        this->image_renderer.getWidth(),
+                        this->image_renderer.getHeight(),
+                        this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
+        }
+
+        if (ImGui::Button("Color Segmented Region"))
+        {
+            applyColorMask(this->image_renderer.getImageData(),
+                        segmented_image,
+                        this->image_renderer.getWidth(),
+                        this->image_renderer.getHeight(),
+                        this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
+    
+        }
+        if (ImGui::Button("Otsus Segmentation"))
+        {
+            int image_length = this->image_renderer.getWidth()* this->image_renderer.getHeight();
+            unsigned short *input_image = new unsigned short[image_length];
+            for (int i = 0; i < image_length; i++) segmented_image[i] = 0;
+            initSingleChannelImage(this->image_renderer.getImageData(), input_image, image_length, this->image_renderer.getChannels());
+            computeOtsusSegmentation(input_image, segmented_image, this->image_renderer.getWidth(), this->image_renderer.getHeight(), 0);
+            initMultiChannelImage(this->image_renderer.getImageData(), segmented_image, image_length, this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
+            delete [] input_image;
+        }
+
+        if (ImGui::Button("Save mask to property table"))
+        {
+            Property curr_property;
+            curr_property.description = "Mask";
+            std::copy(&segmented_image[0], 
+                    &segmented_image[this->image_renderer.getWidth()* this->image_renderer.getHeight() - 1], 
+                    std::back_inserter(curr_property.mask));
+            this->properties.push_back(curr_property);
+        }
+
         ImGui::PlotHistogram("", gray_orig, 1024, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
-        ImGui::SameLine();
-        ImGui::PlotHistogram("", gray_current, 65536, 0, "Current Image Histogram", 0.0f, max_gray_current, ImVec2(400,250));
-        ImGui::Text("0");ImGui::SameLine(380);ImGui::Text("1024   0");ImGui::SameLine(792);ImGui::Text("65536");
+        ImGui::Text("0");ImGui::SameLine(380);ImGui::Text("1024");
         ImGui::End();
     }
 }

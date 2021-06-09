@@ -6,12 +6,20 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <climits>
 #include <string.h>
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
 # define SCREEN_WIDTH 1024
 # define SCREEN_HEIGHT 1024
+
+struct Property
+{
+    std::string                 description;
+    std::vector<unsigned char>  mask;
+};
+
 
 void    read_shader_src(const char *fname, std::vector<char> &buffer);
 
@@ -21,4 +29,10 @@ GLuint load_and_compile_shader(const char *fname, GLenum shaderType);
 
 void	countHistogram(const unsigned short *image_data, int length, int channels, float hist[], float *maxVal);
 unsigned short	*histogramEqualisation(unsigned short* image_data, int cols, int rows, int channels);
-void	        peakNormalization(unsigned short* image_data, int width, int heigth, int channels, int newMin, int newMax, int peakRange[2]);
+void	        peakNormalization(unsigned short* image_data, int width, int heigth, int channels, int newMin, int newMax, int peakBeg, int peakEnd);
+void equalizeHistogram(unsigned short* pdata, int width, int height, int channels, int max_val);
+void computeOtsusSegmentation(unsigned short *input, unsigned short *output, int width, int height, int overrided_threshold);
+void initSingleChannelImage(unsigned short *input, unsigned short *output, int length, int channels);
+void initMultiChannelImage(unsigned short *input, unsigned short *output, int length, int channels);
+void	applyMask(unsigned short *image_data, unsigned short *mask, const int image_width, const int image_height, const int channels);
+void    applyColorMask(unsigned short *image_data, unsigned short *mask, const int image_width, const int image_height, const int channels);

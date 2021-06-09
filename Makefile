@@ -9,7 +9,8 @@ NAME = MIP
 SRC = 	main.cpp \
 		GUI.cpp \
 		utils.cpp \
-		ImageRenderer.cpp
+		ImageRenderer.cpp \
+		OtsuSegmentation.cpp
 
 
 SOURCES = $(addprefix $(SRC_DIR), $(SRC))

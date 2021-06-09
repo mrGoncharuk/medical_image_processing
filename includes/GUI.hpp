@@ -41,9 +41,9 @@ using namespace gl;
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-# include <glm/glm.hpp>
-# include <glm/gtc/matrix_transform.hpp>
-# include <glm/gtc/type_ptr.hpp>
+// # include <glm/glm.hpp>
+// # include <glm/gtc/matrix_transform.hpp>
+// # include <glm/gtc/type_ptr.hpp>
 
 # include <atomic>
 # include <iostream>
@@ -64,7 +64,7 @@ private:
 	GLuint 				my_image_texture;
 	imebra::DataSet 	loadedDataSet;
 	ImageRenderer		image_renderer;
-
+	std::vector<Property> properties;
 
 public:
 	GUI();
