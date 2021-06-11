@@ -71,18 +71,13 @@ public:
 	~GUI();
 	GUI(GUI const &);
 	GUI &operator =(GUI const &);
-
 	GLFWwindow		*getWindow();
-
 	bool			initGL();
 	void			mainloop();
 	void			events(std::atomic<bool>&);
 	void			update();
 	void			render();
-	void			read_orientation();
-
-
-	
+	void			read_orientation();	
 };
 
 #endif

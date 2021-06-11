@@ -132,16 +132,6 @@ void	GUI::update()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    // if (show_demo_window)
-    //     ImGui::ShowDemoWindow(&show_demo_window);
-
-    // {
-    //     ImGui::Begin("Image")
-    //     ImGui::Image((void*)(intptr_t)this->my_image_texture, ImVec2(width, height));
-    //     ImGui::End();
-    // }
-
     {
         ImGui::Begin("Histogram transformation");
 
@@ -150,7 +140,6 @@ void	GUI::update()
         static float max_gray_orig = 0.0f;
         static float gray_current[65536] = {0};
         static float max_gray_current = 0.0f;
-  
         static int threshold = 0;
         static unsigned short *segmented_image = new unsigned short[this->image_renderer.getWidth() * this->image_renderer.getHeight()];
 
@@ -256,8 +245,6 @@ void	GUI::update()
     }
 }
 
-
-
 void	GUI::render()
 {
     ImGui::Render();
@@ -274,7 +261,6 @@ void	GUI::render()
 
     glfwSwapBuffers(window);
 }
-
 
 GLFWwindow *GUI::getWindow() { return (this->window); }
 

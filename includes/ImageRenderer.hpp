@@ -1,15 +1,10 @@
 #pragma once
-
 #include <string>
-
 #include <iostream>
 #include <vector>
 #include <map>
-
 #include <GL/gl3w.h> 
-
 #include <imebra/imebra.h>
-
 #include "utils.hpp"
 
 

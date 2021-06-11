@@ -209,7 +209,6 @@ void	applyMask(unsigned short *image_data, unsigned short *mask, const int image
 	
 }
 
-
 void	applyColorMask(unsigned short *image_data, unsigned short *mask, const int image_width, const int image_height, const int channels)
 {
 	for (int i = 0; i < image_height; i++)
@@ -221,6 +220,5 @@ void	applyColorMask(unsigned short *image_data, unsigned short *mask, const int 
 					image_data[(i * image_width + j) * channels + c] = 0;
 				}
 			}
-	
 }
 
