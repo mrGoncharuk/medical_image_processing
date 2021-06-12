@@ -146,7 +146,6 @@ void equalizeHistogram(unsigned short* pdata, int width, int height, int channel
 
     // Compute scale
     float scale = (n_bins - 1.f) / ((total/channels) - hist[i]);
-	cout << "Scale: " << scale << " hist[" << i <<"]: " << hist[i] << endl;
     // Initialize lut
     vector<int> lut(n_bins, 0);
     i++;
@@ -165,40 +164,6 @@ void equalizeHistogram(unsigned short* pdata, int width, int height, int channel
     }
 }
 
-void	peakNormalization(unsigned short* image_data, int width, int heigth, int channels, int newMin, int newMax, int peakBeg, int peakEnd)
-{
-	int hist[USHRT_MAX + 1] = { 0 };
-	int peakMax = peakBeg;
-	int peakMin = peakBeg;
-	int total;
-
-	total = width * heigth;
-
-	for(int i = 0; i < total * channels; i += channels)
-		hist[(int)image_data[i]]++;
-
-	for(int i = peakBeg; i < peakEnd; i++)
-	{
-		if (hist[i] < hist[peakMax])
-			peakMax = i;
-		if (hist[i] > hist[peakMin])
-			peakMin = i;
-	}
-	std::cout << peakMin << " " << peakMax << std::endl;
-	float tmp;
-	for (int i = 0; i < total; i++)
-	{
-		float tmp = newMin + (image_data[i * channels] - peakMin) / (float)(peakMax - peakMin) * (newMax - newMin);
-		
-		if (tmp > 65535)
-			tmp = 65535;
-		// std::cout << tmp << std::endl;
-		image_data[i * channels] = (unsigned short)round(tmp);
-		image_data[i * channels + 1] = (unsigned short)round(tmp);
-		image_data[i * channels + 2] = (unsigned short)round(tmp);
-	}
-}
-
 void	applyMask(unsigned short *image_data, unsigned short *mask, const int image_width, const int image_height, const int channels)
 {
 	for (int i = 0; i < image_height; i++)
@@ -214,11 +179,8 @@ void	applyColorMask(unsigned short *image_data, unsigned short *mask, const int 
 	for (int i = 0; i < image_height; i++)
 		for (int j = 0; j < image_width; j++)
 			if ( mask[i * image_width + j] )
-			{
-				for (int c = 0; c < channels - 1; c++)
-				{
+				for (int c = 1; c < channels; c++)
 					image_data[(i * image_width + j) * channels + c] = 0;
-				}
-			}
+
 }
 

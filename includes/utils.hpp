@@ -20,7 +20,6 @@ struct Property
     std::vector<unsigned char>  mask;
 };
 
-
 void    read_shader_src(const char *fname, std::vector<char> &buffer);
 GLuint  create_program(const char *path_vert_shader, const char *path_frag_shader);
 GLuint  load_and_compile_shader(const char *fname, GLenum shaderType);
@@ -31,3 +30,4 @@ void    initSingleChannelImage(unsigned short *input, unsigned short *output, in
 void    initMultiChannelImage(unsigned short *input, unsigned short *output, int length, int channels);
 void	applyMask(unsigned short *image_data, unsigned short *mask, const int image_width, const int image_height, const int channels);
 void    applyColorMask(unsigned short *image_data, unsigned short *mask, const int image_width, const int image_height, const int channels);
+unsigned short *DoG(unsigned short *image_data, int width, int height, int channels, float sigma, float sigma2);

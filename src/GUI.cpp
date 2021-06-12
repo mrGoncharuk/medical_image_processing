@@ -142,7 +142,7 @@ void	GUI::update()
         static float max_gray_current = 0.0f;
         static int threshold = 0;
         static unsigned short *segmented_image = new unsigned short[this->image_renderer.getWidth() * this->image_renderer.getHeight()];
-
+        static int sigmas[2] = {0};
         if (!origHistIsReady)
         {
             int length = this->image_renderer.getWidth() * this->image_renderer.getHeight() * this->image_renderer.getChannels();
@@ -172,29 +172,7 @@ void	GUI::update()
                                     this->image_renderer.getWidth(),
                                     this->image_renderer.getHeight(),
                                     this->image_renderer.getChannels(), USHRT_MAX);
-            countHistogram(this->image_renderer.getImageData(),
-                                this->image_renderer.getWidth() * this->image_renderer.getHeight()*3,
-                                this->image_renderer.getChannels(),
-                                gray_current, &max_gray_current);
             this->image_renderer.redrawImage();
-        }
-
-        if (ImGui::SliderInt("Threshold", &threshold, 0, USHRT_MAX))
-        {
-            int image_length = this->image_renderer.getWidth()* this->image_renderer.getHeight();
-            unsigned short *input_image = new unsigned short[image_length];
-            this->image_renderer.restoreImageData();
-            equalizeHistogram(this->image_renderer.getImageData(),
-                                    this->image_renderer.getWidth(),
-                                    this->image_renderer.getHeight(),
-                                    this->image_renderer.getChannels(), USHRT_MAX);
-
-            for (int i = 0; i < image_length; i++) segmented_image[i] = 0;
-            initSingleChannelImage(this->image_renderer.getImageData(), input_image, image_length, this->image_renderer.getChannels());
-            computeOtsusSegmentation(input_image, segmented_image, this->image_renderer.getWidth(), this->image_renderer.getHeight(), threshold);
-            initMultiChannelImage(this->image_renderer.getImageData(), segmented_image, image_length, this->image_renderer.getChannels());
-            this->image_renderer.redrawImage();
-            delete [] input_image;                        
         }
 
         if (ImGui::Button("Apply Segmentation Mask"))
@@ -217,26 +195,18 @@ void	GUI::update()
             this->image_renderer.redrawImage();
     
         }
-        if (ImGui::Button("Otsus Segmentation"))
+
+        if (ImGui::SliderInt2("Sigma", sigmas, 0, 10))
         {
             int image_length = this->image_renderer.getWidth()* this->image_renderer.getHeight();
-            unsigned short *input_image = new unsigned short[image_length];
-            for (int i = 0; i < image_length; i++) segmented_image[i] = 0;
-            initSingleChannelImage(this->image_renderer.getImageData(), input_image, image_length, this->image_renderer.getChannels());
-            computeOtsusSegmentation(input_image, segmented_image, this->image_renderer.getWidth(), this->image_renderer.getHeight(), 0);
-            initMultiChannelImage(this->image_renderer.getImageData(), segmented_image, image_length, this->image_renderer.getChannels());
-            this->image_renderer.redrawImage();
-            delete [] input_image;
-        }
+            this->image_renderer.restoreImageData();
 
-        if (ImGui::Button("Save mask to property table"))
-        {
-            Property curr_property;
-            curr_property.description = "Mask";
-            std::copy(&segmented_image[0], 
-                    &segmented_image[this->image_renderer.getWidth()* this->image_renderer.getHeight() - 1], 
-                    std::back_inserter(curr_property.mask));
-            this->properties.push_back(curr_property);
+            DoG(this->image_renderer.getImageData(),
+                                    this->image_renderer.getWidth(),
+                                    this->image_renderer.getHeight(),
+                                    this->image_renderer.getChannels(), sigmas[0], sigmas[1]);
+            initSingleChannelImage(this->image_renderer.getImageData(), segmented_image, image_length, this->image_renderer.getChannels());
+            this->image_renderer.redrawImage();
         }
 
         ImGui::PlotHistogram("", gray_orig, 1024, 0, "Original Image Histogram", 0.0f, max_gray_orig, ImVec2(400,250));
