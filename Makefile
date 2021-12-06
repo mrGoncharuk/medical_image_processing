@@ -1,4 +1,4 @@
-CXX = g++ -std=c++11
+CXX = g++ -std=c++11 
 # CXX = clang++ -std=c++11
 
 IMPL_DIR = imgui/backends/
@@ -6,10 +6,15 @@ IMGUI_DIR = imgui/
 OBJ_DIR = obj/
 SRC_DIR = src/
 NAME = MIP
-SRC = 	main.cpp \
-		GUI.cpp \
-		utils.cpp \
-		ImageRenderer.cpp
+SRC = 	DicomCT.cpp \
+		glad.c \
+		main.cpp \
+		MIA.cpp
+
+# main.cpp \
+# 		DicomCT.cpp \
+# 		glad.c \
+# 		MIA.cpp
 
 
 SOURCES = $(addprefix $(SRC_DIR), $(SRC))
@@ -25,24 +30,23 @@ SOURCES += 	$(IMGUI_DIR)imgui.cpp \
 OBJS = $(addprefix $(OBJ_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 UNAME_S := $(shell uname -s)
 
-CXXFLAGS = -Iincludes/ -I$(IMPL_DIR) -I$(IMGUI_DIR) -Iimebra_git/library/include/
+CXXFLAGS = -Iincludes/ -Iglm/ -I$(IMPL_DIR) -I$(IMGUI_DIR) -Iimebra_git/library/include/ -Limebra_git/artifacts
 CXXFLAGS += -g
-LIBS = -lpthread -lm -limebra 
+LIBS = -lm -limebra -lstdc++fs
 ##---------------------------------------------------------------------
 ## OPENGL LOADER
 ##---------------------------------------------------------------------
 
 ## Using OpenGL loader: gl3w [default]
-SOURCES += imgui/examples/libs/gl3w/GL/gl3w.c
-CXXFLAGS += -Iimgui/examples/libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W -Limebra_git/artifacts
+# SOURCES += imgui/examples/libs/gl3w/GL/gl3w.c
+# CXXFLAGS += -Iimgui/examples/libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W -Limebra_git/artifacts
 
 ## Using OpenGL loader: glew
 # (This assumes a system-wide installation)
 # CXXFLAGS += -lGLEW -DIMGUI_IMPL_OPENGL_LOADER_GLEW
 
 ## Using OpenGL loader: glad
-# SOURCES += imgui/libs/glad/src/glad.c
-# CXXFLAGS += -Iimgui/libs/glad/include -DIMGUI_IMPL_OPENGL_LOADER_GLAD
+CXXFLAGS += -DIMGUI_IMPL_OPENGL_LOADER_GLAD
 
 ##---------------------------------------------------------------------
 ## BUILD FLAGS PER PLATFORM
@@ -50,7 +54,7 @@ CXXFLAGS += -Iimgui/examples/libs/gl3w -DIMGUI_IMPL_OPENGL_LOADER_GL3W -Limebra_
 
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
-	LIBS += -lGL `pkg-config --static --libs glfw3`
+	LIBS += -lGL -lGL -lX11 -lpthread -lXrandr -lXi -ldl `pkg-config --static --libs glfw3`
 
 	CXXFLAGS += `pkg-config --cflags glfw3`
 	CFLAGS = $(CXXFLAGS)

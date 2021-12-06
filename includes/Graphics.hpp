@@ -1,9 +1,4 @@
-#ifndef GUI_HPP
-# define GUI_HPP
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#pragma once
 
 // About Desktop OpenGL function loaders:
 //  Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function pointers.
@@ -39,50 +34,4 @@ using namespace gl;
 // Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
-#endif
-
-# include <glm/glm.hpp>
-# include <glm/gtc/matrix_transform.hpp>
-# include <glm/gtc/type_ptr.hpp>
-
-# include <atomic>
-# include <iostream>
-# include <imebra/imebra.h>
-# include <stdio.h>
-# include <map>
-# include <fstream>
-
-# include "utils.hpp"
-
-#include "ImageRenderer.hpp"
-
-class GUI
-{
-private:
-	GLFWwindow			*window;
-	ImVec4 				clearColor;
-	GLuint 				my_image_texture;
-	imebra::DataSet 	loadedDataSet;
-	ImageRenderer		image_renderer;
-
-
-public:
-	GUI();
-	~GUI();
-	GUI(GUI const &);
-	GUI &operator =(GUI const &);
-
-	GLFWwindow		*getWindow();
-
-	bool			initGL();
-	void			mainloop();
-	void			events(std::atomic<bool>&);
-	void			update();
-	void			render();
-	void			read_orientation();
-
-
-	
-};
-
 #endif

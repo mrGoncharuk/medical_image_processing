@@ -1,19 +1,18 @@
-#include "GUI.hpp"
+#include "MIA.hpp"
 
-int		main(int argc, char **argv)
+int main()
 {
-	std::atomic<bool> isRunning;
-	GUI gui;
+	MIA game("Medical Image Analysis",
+		512, 512,
+		false);
 
-	isRunning = true;
-	if (gui.initGL() == false)
-		isRunning = false;
-	while (isRunning)
+	//MAIN LOOP
+	while (!game.getWindowShouldClose())
 	{
-		gui.events(isRunning);
-		gui.update();
-		gui.render();
+		//UPDATE INPUT ---
+		game.update();
+		game.render();	
 	}
 
-    return 0;
+	return 0;
 }
