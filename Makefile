@@ -6,10 +6,12 @@ IMGUI_DIR = imgui/
 OBJ_DIR = obj/
 SRC_DIR = src/
 NAME = MIP
-SRC = 	DicomCT.cpp \
-		glad.c \
+SRC = 	glad.c \
+		Point.cpp \
 		main.cpp \
-		MIA.cpp
+		Text.cpp \
+		MIA.cpp \
+		Point.cpp
 
 # main.cpp \
 # 		DicomCT.cpp \
@@ -30,8 +32,8 @@ SOURCES += 	$(IMGUI_DIR)imgui.cpp \
 OBJS = $(addprefix $(OBJ_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 UNAME_S := $(shell uname -s)
 
-CXXFLAGS = -Iincludes/ -Iglm/ -I$(IMPL_DIR) -I$(IMGUI_DIR) -Iimebra_git/library/include/ -Limebra_git/artifacts
-CXXFLAGS += -g
+CXXFLAGS = -Iincludes/ -Iglm/ -I$(IMPL_DIR) -I$(IMGUI_DIR) -Iimebra_git/library/include/ -Ifreetype-2.10.0/include -Limebra_git/artifacts -Lfreetype-2.10.0/objs -lfreetype
+CXXFLAGS += -g -O0
 LIBS = -lm -limebra -lstdc++fs
 ##---------------------------------------------------------------------
 ## OPENGL LOADER

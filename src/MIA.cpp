@@ -88,9 +88,9 @@ void MIA::initGLAD()
 
 void MIA::initOpenGLOptions()
 {
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
-    
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Enable blending for text rendering
 }
 
 void MIA::initImGui()
@@ -118,80 +118,50 @@ void MIA::initImGui()
 
 void MIA::initShaders()
 {
-	this->shaders.push_back(new Shader("shaders/texture.vs", "shaders/texture.fs"));
-	this->shaders.push_back(new Shader("shaders/rectangle.vs", "shaders/rectangle.fs"));
+	shaders.push_back(new Shader("shaders/line.vs", "shaders/line.fs"));
+	shaders.push_back(new Shader("shaders/point.vs", "shaders/point.fs"));
 
 }
 
-void MIA::initTextures()
+void MIA::initSceneObjects()
 {
-    std::string path = "/home/mhoncharuk/Education/MIA/data/DICOM_set_16bits";
-	dct.readDicomSet(path);
-	ss.init((short **)dct.getImageSet(), dct.params["width"], dct.params["heigth"], dct.params["length"]);
-	this->textures.push_back(new Texture((char *)ss.getTransverseSlice(0), dct.params["width"], dct.params["heigth"], dct.params));
-	this->textures.push_back(new Texture((char *)ss.getFrontalSlice(0), dct.params["width"], dct.params["length"], dct.params));
-	this->textures.push_back(new Texture((char *)ss.getSagitalSlice(0), dct.params["heigth"], dct.params["length"], dct.params));
-}
+
+	points.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f)));	// First camera
+	points.push_back(new Point(glm::vec3(-540.0f, 0.0f, 0.0f)));	// Second camera
+	points.push_back(new Point(glm::vec3(0.0f, 0.0f, 3000.0f), false));	// First camera projection point
+	points.push_back(new Point(glm::vec3(-540.0f, 0.0f, 3000.0f), false));	// Second camera projection point
+	points.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f), false));	// point to find
 
 
-
-void MIA::initMeshes()
-{
-	GLuint indices[6] = {
-		0, 1, 3,
-		1, 2, 3
-	};
-    float vertices[] = {
-			//Position								//Color							//Texcoords					
-
-            -1.0f, 0.0f, 0.f,			1.f, 0.f, 0.f,		0.0f, 1.0f,
-			0.0f, 0.0f, 0.f,			    0.f, 1.f, 0.f,		1.0f, 1.0f,
-			0.0f, 1.0f, 0.f,			    0.f, 0.f, 1.f,		1.0f, 0.0f,
-			-1.0f, 1.0f, 0.f,			1.f, 1.f, 0.f,		0.0f, 0.0f
-                        };
-
-    meshes.push_back(new Mesh(vertices, 4, indices, 6));
-
-    float vertices2[] = {
-			//Position								//Color							//Texcoords					
-
-            0.0f, 0.0f, 0.f,			1.f, 0.f, 0.f,		0.0f, 1.0f,
-			1.0f, 0.0f, 0.f,			    0.f, 1.f, 0.f,		1.0f, 1.0f,
-			1.0f, 1.0f, 0.f,			    0.f, 0.f, 1.f,		1.0f, 0.0f,
-			0.0f, 1.0f, 0.f,			1.f, 1.f, 0.f,		0.0f, 0.0f
-                        };
-    meshes.push_back(new Mesh(vertices2, 4, indices, 6));
+	points[0]->setColor(glm::vec3(1.0f, 0.5f, 0.0f));
+	points[1]->setColor(glm::vec3(0.0f, 0.0f, 1.0f));
+	points[2]->setColor(glm::vec3(1.0f, 0.5f, 0.0f));
+	points[3]->setColor(glm::vec3(0.0f, 0.5f, 1.0f));
+	points[4]->setColor(glm::vec3(0.0f, 1.0f, 0.0f));
 
 
-    float vertices3[] = {
-			//Position								//Color							//Texcoords					
+	lines.push_back(new Line(glm::vec3(-4500.0f, 0.0f, 0.0f), glm::vec3(4500.0f, 0.0f, 0.0f)));	// X Axis line
+	lines.push_back(new Line(glm::vec3(0.0f, -4500.0f, 0.0f), glm::vec3(0.0f, 4500.0f, 0.0f))); // Y Axis line
+	lines.push_back(new Line(glm::vec3(0.0f, 0.0f, -4500.0f), glm::vec3(0.0f, 0.0f, 4500.0f))); // Z Axis line
+	lines.push_back(new Line(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));		// Camera 1 to point
+	lines.push_back(new Line(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));		// Camera 2 to point
 
-            -1.0f, -1.0f, 0.f,			1.f, 0.f, 0.f,		0.0f, 1.0f,
-			0.0f, -1.0f, 0.f,			    0.f, 1.f, 0.f,		1.0f, 1.0f,
-			0.0f, 0.0f, 0.f,			    0.f, 0.f, 1.f,		1.0f, 0.0f,
-			-1.0f, 0.0f, 0.f,			1.f, 1.f, 0.f,		0.0f, 0.0f
-                        };
-    meshes.push_back(new Mesh(vertices3, 4, indices, 6));
 
-    float vertices4[] = {
-			//Position								//Color							//Texcoords					
+	lines[0]->setColor(glm::vec3(1.0f, 0.0f, 0.0f));
+	lines[1]->setColor(glm::vec3(0.0f, 1.0f, 0.0f));
+	lines[2]->setColor(glm::vec3(0.0f, 0.0f, 1.0f));
+	lines[3]->setColor(glm::vec3(0.0f, 1.0f, 1.0f));
+	lines[4]->setColor(glm::vec3(0.0f, 1.0f, 1.0f));
 
-            0.0f, 0.0f, 0.0f,			1.f, 0.f, 0.f,		0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f,			    1.f, 0.f, 0.f,		0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f,			    1.f, 0.f, 0.f,		0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f,			1.f, 0.f, 0.f,		0.0f, 0.0f
-                        };
-    meshes.push_back(new Mesh(vertices4, 4, indices, 6));
-	float vertices5[] = {
-		//Position								//Color							//Texcoords					
 
-		0.0f, 0.0f, 0.0f,			0.f, 1.f, 0.f,		0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f,			    0.f, 1.f, 0.f,		0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f,			    0.f, 1.f, 0.f,		0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f,			0.f, 1.f, 0.f,		0.0f, 0.0f
-					};
-meshes.push_back(new Mesh(vertices5, 4, indices, 6));
-	
+	glm::mat4 orto_proj = glm::ortho(-4000.0f, 4000.0f, -4000.0f, 4000.0f, -4000.0f, 4000.0f);
+	for (size_t i = 0; i < points.size(); i++)
+		points[i]->setMVP(orto_proj);
+	for (size_t i = 0; i < lines.size(); i++)
+		lines[i]->setMVP(orto_proj);
+
+	texts.push_back(new Text(this->WINDOW_WIDTH, this->WINDOW_HEIGHT));
+	texts[0]->loadFont("fonts/open-sans/OpenSans-Bold.ttf");
 }
 
 //Constructors / Destructors
@@ -226,9 +196,7 @@ MIA::MIA(
     this->initImGui();
 
 	this->initShaders();
-	this->initTextures();
-	this->initMeshes();
-	this->rulerLine = new Line(glm::vec3(0), glm::vec3(0));
+	this->initSceneObjects();
 }
 
 MIA::~MIA()
@@ -236,13 +204,9 @@ MIA::~MIA()
 	for (size_t i = 0; i < this->shaders.size(); i++)
 		delete this->shaders[i];
 	
-	for (size_t i = 0; i < this->textures.size(); i++)
-		delete this->textures[i];
+	for (size_t i = 0; i < this->points.size(); i++)
+		delete this->points[i];
 
-    for (size_t i = 0; i < this->meshes.size(); i++)
-		delete this->meshes[i];
-
-	delete this->rulerLine;
 	glfwDestroyWindow(this->window);
 	glfwTerminate();
 }
@@ -271,23 +235,7 @@ void MIA::updateMouseInput()
 {
 	if (glfwGetMouseButton(this->window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && rulerState != 0)
 	{
-		switch (this->rulerState)
-		{
-		case 1:
-			glfwGetCursorPos(this->window, &this->lastMouseX, &this->lastMouseY);
-			this->meshes[3]->resetPosition(2 * this->lastMouseX / this->WINDOW_WIDTH - 1, 1 - 2 * this->lastMouseY / this->WINDOW_HEIGHT);
-			break;
-		case 2:
-			glfwGetCursorPos(this->window, &this->mouseX, &this->mouseY);
-			this->meshes[4]->resetPosition(2 * this->mouseX / this->WINDOW_WIDTH - 1, 1 - 2 * this->mouseY / this->WINDOW_HEIGHT);
-
-			break;
-		default:
-			break;
-
-		}
-		rulerLine->setPosition(glm::vec3(2 * this->lastMouseX / this->WINDOW_WIDTH - 1,  1 - 2 * this->lastMouseY / this->WINDOW_HEIGHT, 0),
-								glm::vec3(2 * this->mouseX / this->WINDOW_WIDTH - 1, 1 - 2 * this->mouseY / this->WINDOW_HEIGHT, 0));
+		std::cout << "Mouse Pressed" << std::endl;
 	}
 
 }
@@ -320,10 +268,13 @@ void MIA::update()
     // static bool show_demo_window = true;
 	// if (show_demo_window)
     //     ImGui::ShowDemoWindow(&show_demo_window);
-	static int	horSlice = 0;
-	static int	frontSlice = 0;
-	static int	sagSlice = 0;
-
+	static int		x_rot = 205;
+	static int		y_rot = 239;
+	static int		z_rot = 184;
+	static float	scale = 1.0;
+	static float pr1arr[2] = {50, 90};
+	static float pr2arr[2] = {20, 90};
+	static glm::vec3 m1(0), m2(0);
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -331,66 +282,102 @@ void MIA::update()
 	{
         ImGui::Begin("Image Slicing");
 		ImGui::PushItemWidth(100);
-        if (ImGui::SliderInt("Transverse slice", &horSlice, 0, 19))
-            textures[0]->reloadFromData((char *)ss.getTransverseSlice(horSlice), dct.params["width"], dct.params["heigth"], dct.params);
-        if (ImGui::SliderInt("Frontal slice", &frontSlice, 0, 255))
-            textures[1]->reloadFromData((char *)ss.getFrontalSlice(frontSlice), dct.params["width"], dct.params["length"], dct.params);
-		if (ImGui::SliderInt("Sagital slice", &sagSlice, 0, 255))
-            textures[2]->reloadFromData((char *)ss.getSagitalSlice(sagSlice), dct.params["heigth"], dct.params["length"], dct.params);
 
-        ImGui::RadioButton("Disable ruler", &this->rulerState, 0);
-        ImGui::RadioButton("Setting first point", &this->rulerState, 1);
-        ImGui::RadioButton("Setting second point", &this->rulerState, 2);
-		if (this->rulerState)
+
+
+		ImGui::InputFloat2("U1, V1", pr1arr);
+		ImGui::InputFloat2("U2, V2", pr2arr);
+		if (ImGui::Button("Calculate"))
 		{
-			double pixel_dist = sqrt(pow(this->mouseX - this->lastMouseX, 2) + pow(this->mouseY - this->lastMouseY, 2) * 1.0);
-			double real_dist = sqrt(pow((this->mouseX - this->lastMouseX) * dct.getPixelSpacingX(), 2) + pow((this->mouseY - this->lastMouseY) * dct.getPixelSpacingY(), 2) * 1.0);
+			// Input
+			glm::vec2 pr1(pr1arr[0], pr1arr[1]);
+			glm::vec2 pr2(pr2arr[0], pr2arr[1]);
+			// Find point:
+			glm::vec3 cam1(0.0f, 0.0f, 0.0f);
+			glm::vec3 cam2(-54.0f, 0.0f, 0.0f);
+			float z = 200.0f;
+			float f = z;
+			float b = 54.0f;
 
-			ImGui::Text("Pixel Distance: %.2f", pixel_dist);
-			ImGui::Text("Real Distance: %.2fmm", real_dist); 
-			ImGui::Text("Point1(%.2f; %.2f);", this->mouseX, this->mouseY);
-			ImGui::Text("Point2(%.2f; %.2f);", this->lastMouseX, this->lastMouseY);
+		
+			float r = b / (pr1.x - pr2.x);
+			float s = r;
+
+			m1 = glm::vec3(s * pr1.x, s * pr1.y, s * f);
+			m2 = glm::vec3(b + r * pr2.x, r * pr2.y, r * f);
+			std::cout << "Point1(" << m1.x << ", " << m1.y << ", " << m1.z << ")" << std::endl;
+			std::cout << "Point2(" << m2.x << ", " << m2.y << ", " << m2.z << ")" << std::endl;
+			if (m1 == m2)
+			{
+				points[2]->setPosition(glm::vec3(pr1arr[0]*10, pr1arr[1]*10, z*10));
+				points[3]->setPosition(glm::vec3(pr2arr[0]*10, pr2arr[1]*10, z*10));
+				points[4]->setPosition(m1 * 10.0f);
+				for(int i = 2; i < points.size(); ++i)
+					points[i]->activate();
+				lines[3]->setPosition(cam1 * 10.0f, m1 * 10.0f);
+				lines[4]->setPosition(cam2 * 10.0f, m2 * 10.0f);
+				for(int i = 3; i < lines.size(); ++i)
+					lines[i]->activate();
+
+			}
+			else
+			{
+				for(int i = 2; i < points.size(); ++i)
+					points[i]->deactivate();
+				for(int i = 3; i < lines.size(); ++i)
+					lines[i]->deactivate();
+			}
 		}
-        ImGui::End();
-    }
 
+		ImGui::Text("Camera1(%d, %d, %d)", 0, 0, 0);
+		ImGui::Text("Camera2(%d, %d, %d)", -54, 0, 0);
+		ImGui::Text("Camera1 Projection Point(%d, %d, %d)", (int)pr1arr[0], (int)pr1arr[1], 200);
+		ImGui::Text("Camera2 Projection Point(%d, %d, %d)", (int)pr2arr[0], (int)pr2arr[1], 200);
+		ImGui::Text("Point1(%.2f, %.2f, %.2f)", m1.x, m1.y, m1.z);
+		ImGui::Text("Point2(%.2f, %.2f, %.2f)", m2.x, m2.y, m2.z);
+
+
+		if (ImGui::Button("Rotate") ||
+			ImGui::SliderInt("Rotate X", &x_rot, 0, 360) ||
+			ImGui::SliderInt("Rotate Y", &y_rot, 0, 360) ||
+			ImGui::SliderInt("Rotate Z", &z_rot, 0, 360) ||
+			ImGui::SliderFloat("Scale",  &scale, 0.0f, 1.0f))
+		{
+			glm::mat4 rot = glm::mat4(1.0f);
+			rot = glm::rotate(rot, (float)(x_rot * M_PI / 180), glm::vec3(1.0f, 0.0f, 0.0f));
+			rot = glm::rotate(rot, (float)(y_rot * M_PI / 180), glm::vec3(0.0f, 1.0f, 0.0f));
+			rot = glm::rotate(rot, (float)(z_rot * M_PI / 180), glm::vec3(0.0f, 0.0f, 1.0f));
+			rot = glm::scale(rot, glm::vec3(scale));
+			glm::mat4 ortho_proj = glm::ortho(-4000.0f, 4000.0f, -4000.0f, 4000.0f, -4000.0f, 4000.0f);
+			rot = ortho_proj * rot;
+			for (size_t i = 0; i < lines.size(); i++)
+				lines[i]->setMVP(rot);
+			for (size_t i = 0; i < points.size(); i++)
+				points[i]->setMVP(rot);
+			texts[0]->setMVP(rot);
+		}
+
+		ImGui::End();
+    }
 }
 
 void MIA::render()
 {
-	//UPDATE --- 
-	// updateInput(window);
     ImGui::Render();
 
-	//DRAW ---
-	//Clear
-	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    //Use a program (BECAUSE SHADER CLASS LAST UNIFORM UPDATE UNUSES IT)
-	textures[0]->bind(0);
-	meshes[0]->render(shaders[0]);
-	textures[1]->bind(0);
-	meshes[1]->render(shaders[0]);
-	textures[2]->bind(0);
-	meshes[2]->render(shaders[0]);
-	glActiveTexture(0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	if (this->rulerState)
-	{
-		meshes[3]->render(shaders[1]);
-		meshes[4]->render(shaders[1]);
-		rulerLine->draw();
-	}
-	//End Draw
+	for (size_t i = 0; i < lines.size(); i++)
+		lines[i]->render(shaders[0]);
+	for (size_t i = 0; i < points.size(); i++)
+		points[i]->render(shaders[1]);
+	texts[0]->renderText("X", 4000, 0, 0, 15, glm::vec3(1.0f, 0.0f, 0.0f));
+	texts[0]->renderText("Y", 0, 4000, 0, 15, glm::vec3(0.0f, 1.0f, 0.0f));
+	texts[0]->renderText("Z", 0, 0, 4000, 15, glm::vec3(0.0f, 0.0f, 1.0f));
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 	glfwSwapBuffers(window);
-	// glFlush();
-
-	// glBindVertexArray(0);
-	// glUseProgram(0);
-
 }
 
 //Static functions

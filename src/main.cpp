@@ -3,7 +3,7 @@
 int main()
 {
 	MIA game("Medical Image Analysis",
-		512, 512,
+		800, 800,
 		false);
 
 	//MAIN LOOP

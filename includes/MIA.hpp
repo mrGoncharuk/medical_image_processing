@@ -5,13 +5,14 @@
 #include "imgui_impl_opengl3.h"
 #include "Graphics.hpp"
 
-#include "DicomCT.hpp"
-#include "SetSlicer.hpp"
-
 #include "Shader.hpp"
-#include "Mesh.hpp"
-#include "Texture.hpp"
 #include "Line.hpp"
+#include "Point.hpp"
+#include "Text.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 
 class MIA
 {
@@ -39,16 +40,15 @@ private:
 	//Shaders
 	std::vector<Shader*> shaders;
 
-	//Textures
-	std::vector<Texture*> textures;
+	//Lines
+	std::vector<Line*> lines;
 
-    //Meshes
-	std::vector<Mesh*> meshes;
-	Line	*rulerLine;
-	// CT data
-	DicomCT dct;
-	SetSlicer<short> ss;
-//Private functions
+	// Points
+	std::vector<Point*> points;
+
+	std::vector<Text *> texts;
+
+	//Private functions
 	void initGLFW();
 	void initWindow(
 		const char* title,
@@ -59,8 +59,7 @@ private:
 
 	// void initMatrices();
 	void initShaders();
-	void initTextures();
-    void initMeshes();
+    void initSceneObjects();
     void initImGui();
 
 public:
