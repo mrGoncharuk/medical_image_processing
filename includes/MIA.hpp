@@ -3,16 +3,18 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "implot.h"
 #include "Graphics.hpp"
 
-#include "Shader.hpp"
-#include "Line.hpp"
-#include "Point.hpp"
-#include "Text.hpp"
+#include "DicomCT.hpp"
+#include "SetSlicer.hpp"
+#include "CTStatist.hpp"
+
+#include "Texture.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
+#include <vector>
 
 class MIA
 {
@@ -25,29 +27,19 @@ private:
 	int framebufferWidth;
 	int framebufferHeight;
 
-	//Delta time
-	float dt;
-	float curTime;
-	float lastTime;
-
 	//Mouse Input
 	double lastMouseX;
 	double lastMouseY;
 	double mouseX;
 	double mouseY;
 
-	int rulerState;	// 0 - off, 1 - the first point, 2 - the second point
-	//Shaders
-	std::vector<Shader*> shaders;
+	//Textures
+	std::vector<Texture*> textures;
 
-	//Lines
-	std::vector<Line*> lines;
-
-	// Points
-	std::vector<Point*> points;
-
-	std::vector<Text *> texts;
-
+	// CT data
+	DicomCT dct;
+	SetSlicer<short> ss;
+	CTStatist cts;
 	//Private functions
 	void initGLFW();
 	void initWindow(
@@ -58,7 +50,6 @@ private:
 	void initOpenGLOptions();
 
 	// void initMatrices();
-	void initShaders();
     void initSceneObjects();
     void initImGui();
 
@@ -78,7 +69,6 @@ public:
 	void setWindowShouldClose();
 
 //Functions
-	void updateDt();
 	void updateMouseInput();
 	void updateKeyboardInput();
 	void updateInput();

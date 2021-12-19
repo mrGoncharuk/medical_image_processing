@@ -3,15 +3,15 @@ CXX = g++ -std=c++11
 
 IMPL_DIR = imgui/backends/
 IMGUI_DIR = imgui/
+IMPLOT_DIR = implot/
 OBJ_DIR = obj/
 SRC_DIR = src/
 NAME = MIP
 SRC = 	glad.c \
-		Point.cpp \
 		main.cpp \
-		Text.cpp \
 		MIA.cpp \
-		Point.cpp
+		DicomCT.cpp \
+		CTStatist.cpp
 
 # main.cpp \
 # 		DicomCT.cpp \
@@ -29,12 +29,24 @@ SOURCES += 	$(IMGUI_DIR)imgui.cpp \
 			$(IMGUI_DIR)imgui_widgets.cpp \
 			$(IMGUI_DIR)imgui_tables.cpp
 
+SOURCES +=	$(IMPLOT_DIR)implot.cpp \
+			$(IMPLOT_DIR)implot_items.cpp \
+			$(IMPLOT_DIR)implot_demo.cpp
+
+
 OBJS = $(addprefix $(OBJ_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 UNAME_S := $(shell uname -s)
 
-CXXFLAGS = -Iincludes/ -Iglm/ -I$(IMPL_DIR) -I$(IMGUI_DIR) -Iimebra_git/library/include/ -Ifreetype-2.10.0/include -Limebra_git/artifacts -Lfreetype-2.10.0/objs -lfreetype
-CXXFLAGS += -g -O0
-LIBS = -lm -limebra -lstdc++fs
+CXXFLAGS = 	-Iincludes/ \
+			-Iglm/ \
+			-I$(IMPL_DIR) \
+			-I$(IMGUI_DIR) \
+			-I$(IMPLOT_DIR) \
+			-Iimebra_git/library/include/ \
+			-Limebra_git/artifacts
+
+CXXFLAGS += -g -O0 `pkg-config --cflags --libs opencv`
+LIBS = -lm -limebra -lstdc++fs 
 ##---------------------------------------------------------------------
 ## OPENGL LOADER
 ##---------------------------------------------------------------------
@@ -116,6 +128,9 @@ $(OBJ_DIR)%.o: $(IMGUI_DIR)%.cpp
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 	@printf "$(C_MAGENTA)$(NAME):$(C_NONE) %-25s$(C_GREEN)[done]$(C_NONE)\n" $@
 
+$(OBJ_DIR)%.o: $(IMPLOT_DIR)%.cpp
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+	@printf "$(C_MAGENTA)$(NAME):$(C_NONE) %-25s$(C_GREEN)[done]$(C_NONE)\n" $@
 
 $(OBJ_DIR)%.o: $(IMGUI_DIR)examples/libs/gl3w/GL/%.c
 	@$(CC) $(CXXFLAGS) -c $< -o $@

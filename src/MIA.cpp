@@ -98,10 +98,11 @@ void MIA::initImGui()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImPlot::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
+	io.ConfigWindowsMoveFromTitleBarOnly = true;
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
@@ -110,58 +111,18 @@ void MIA::initImGui()
     ImGui_ImplGlfw_InitForOpenGL(this->window, true);
     // ImGui_ImplOpenGL3_Init(glsl_version);
     const char* glsl_version = "#version 330 core";
-
     ImGui_ImplOpenGL3_Init(glsl_version);
-
 }
 
-
-void MIA::initShaders()
-{
-	shaders.push_back(new Shader("shaders/line.vs", "shaders/line.fs"));
-	shaders.push_back(new Shader("shaders/point.vs", "shaders/point.fs"));
-
-}
 
 void MIA::initSceneObjects()
 {
+    std::string path = "/home/mhoncharuk/Education/MIA/data/DICOM_set_16bits";
+	dct.readDicomSet(path);
+	ss.init((short **)dct.getImageSet(), dct.params["width"], dct.params["heigth"], dct.params["length"]);
+	this->textures.push_back(new Texture((char *)ss.getTransverseSlice(0), dct.params["width"], dct.params["heigth"], dct.params));
+	this->textures.push_back(new Texture((char *)ss.getTransverseSlice(0), dct.params["width"], dct.params["heigth"], dct.params));
 
-	points.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f)));	// First camera
-	points.push_back(new Point(glm::vec3(-540.0f, 0.0f, 0.0f)));	// Second camera
-	points.push_back(new Point(glm::vec3(0.0f, 0.0f, 3000.0f), false));	// First camera projection point
-	points.push_back(new Point(glm::vec3(-540.0f, 0.0f, 3000.0f), false));	// Second camera projection point
-	points.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f), false));	// point to find
-
-
-	points[0]->setColor(glm::vec3(1.0f, 0.5f, 0.0f));
-	points[1]->setColor(glm::vec3(0.0f, 0.0f, 1.0f));
-	points[2]->setColor(glm::vec3(1.0f, 0.5f, 0.0f));
-	points[3]->setColor(glm::vec3(0.0f, 0.5f, 1.0f));
-	points[4]->setColor(glm::vec3(0.0f, 1.0f, 0.0f));
-
-
-	lines.push_back(new Line(glm::vec3(-4500.0f, 0.0f, 0.0f), glm::vec3(4500.0f, 0.0f, 0.0f)));	// X Axis line
-	lines.push_back(new Line(glm::vec3(0.0f, -4500.0f, 0.0f), glm::vec3(0.0f, 4500.0f, 0.0f))); // Y Axis line
-	lines.push_back(new Line(glm::vec3(0.0f, 0.0f, -4500.0f), glm::vec3(0.0f, 0.0f, 4500.0f))); // Z Axis line
-	lines.push_back(new Line(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));		// Camera 1 to point
-	lines.push_back(new Line(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));		// Camera 2 to point
-
-
-	lines[0]->setColor(glm::vec3(1.0f, 0.0f, 0.0f));
-	lines[1]->setColor(glm::vec3(0.0f, 1.0f, 0.0f));
-	lines[2]->setColor(glm::vec3(0.0f, 0.0f, 1.0f));
-	lines[3]->setColor(glm::vec3(0.0f, 1.0f, 1.0f));
-	lines[4]->setColor(glm::vec3(0.0f, 1.0f, 1.0f));
-
-
-	glm::mat4 orto_proj = glm::ortho(-4000.0f, 4000.0f, -4000.0f, 4000.0f, -4000.0f, 4000.0f);
-	for (size_t i = 0; i < points.size(); i++)
-		points[i]->setMVP(orto_proj);
-	for (size_t i = 0; i < lines.size(); i++)
-		lines[i]->setMVP(orto_proj);
-
-	texts.push_back(new Text(this->WINDOW_WIDTH, this->WINDOW_HEIGHT));
-	texts[0]->loadFont("fonts/open-sans/OpenSans-Bold.ttf");
 }
 
 //Constructors / Destructors
@@ -172,17 +133,12 @@ MIA::MIA(
 )
 	:
 	WINDOW_WIDTH(WINDOW_WIDTH),
-	WINDOW_HEIGHT(WINDOW_HEIGHT),
-	rulerState(0)
+	WINDOW_HEIGHT(WINDOW_HEIGHT)
 {
 	//Init variables
 	this->window = nullptr;
 	this->framebufferWidth = this->WINDOW_WIDTH;
 	this->framebufferHeight = this->WINDOW_HEIGHT;
-
-	this->dt = 0.f;
-	this->curTime = 0.f;
-	this->lastTime = 0.f;
 
 	this->lastMouseX = 0.0;
 	this->lastMouseY = 0.0;
@@ -195,17 +151,18 @@ MIA::MIA(
 	this->initOpenGLOptions();
     this->initImGui();
 
-	this->initShaders();
 	this->initSceneObjects();
 }
 
 MIA::~MIA()
 {
-	for (size_t i = 0; i < this->shaders.size(); i++)
-		delete this->shaders[i];
+	ImPlot::DestroyContext();
+	ImGui::DestroyContext();
+
 	
-	for (size_t i = 0; i < this->points.size(); i++)
-		delete this->points[i];
+	for (size_t i = 0; i < this->textures.size(); i++)
+		delete this->textures[i];
+
 
 	glfwDestroyWindow(this->window);
 	glfwTerminate();
@@ -223,142 +180,271 @@ void MIA::setWindowShouldClose()
 	glfwSetWindowShouldClose(this->window, GLFW_TRUE);
 }
 
-//Functions
-void MIA::updateDt()
-{
-	this->curTime = static_cast<float>(glfwGetTime());
-	this->dt = this->curTime - this->lastTime;
-	this->lastTime = this->curTime;
-}
-
 void MIA::updateMouseInput()
 {
-	if (glfwGetMouseButton(this->window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && rulerState != 0)
-	{
-		std::cout << "Mouse Pressed" << std::endl;
-	}
-
+	// if (glfwGetMouseButton(this->window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	// {
+	// 	std::cout << "Mouse Pressed" << std::endl;
+	// }
 }
 
 void MIA::updateKeyboardInput()
 {
-	//Program
 	if (glfwGetKey(this->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(this->window, GLFW_TRUE);
 	}
-
 }
 
 void MIA::updateInput()
 {
 	glfwPollEvents();
-	
 	this->updateKeyboardInput();
-
 	this->updateMouseInput();
 }
 
+cv::Mat		cropImage(short *img, ImVector<ImVec2> points)
+{
+	float x = points[0].x < points[1].x ? points[0].x : points[1].x;
+	float y = points[0].y < points[1].y ? points[0].y : points[1].y;
+	float w = abs(points[0].x - points[1].x);
+	float h = abs(points[0].y - points[1].y);
+
+
+	std::cout << "x: " << x << " y: " << y << " w: " << w << " h: " << h << std::endl;
+	int histSize = 0;
+	cv::Mat img_hist;
+	cv::Mat image = cv::Mat(256, 256, CV_16SC1, (void *)img);
+	cv::Mat croppedImage = image(cv::Rect(x, y, w, h));
+	cv::Mat croppedImageU16;
+	croppedImage.convertTo(croppedImageU16, CV_16U);
+	
+	return croppedImageU16;
+}
+
+cv::Mat		calculateFrequencies(cv::Mat image)
+{
+	cv::Mat hist;
+	
+	double minVal;
+	double maxVal;
+	cv::Point minLoc; 
+	cv::Point maxLoc;
+	minMaxLoc( image, &minVal, &maxVal, &minLoc, &maxLoc );
+	std::cout << "Max val: " << maxVal << std::endl;
+	int histSize = maxVal;
+	float range[] = { 0,(float)maxVal }; //the upper boundary is exclusive
+	const float* histRange[] = { range };
+	cv::calcHist( &image, 1, 0, cv::Mat(), hist, 1, &histSize, histRange, true, false );
+
+	cv::Mat hist_int;
+	hist.convertTo(hist_int, CV_32S);
+	return hist_int;
+}
+
+
+
 void MIA::update()
 {
-	this->updateDt();
 	this->updateInput();
-
-    // Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    // static bool show_demo_window = true;
-	// if (show_demo_window)
-    //     ImGui::ShowDemoWindow(&show_demo_window);
-	static int		x_rot = 205;
-	static int		y_rot = 239;
-	static int		z_rot = 184;
-	static float	scale = 1.0;
-	static float pr1arr[2] = {50, 90};
-	static float pr2arr[2] = {20, 90};
-	static glm::vec3 m1(0), m2(0);
+	
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+	// ROI Data
+	static ImVector<ImVec2> points;
+
+	// Statistics Data
+	static bool show_statistics = false;
+
+	// Histogram Data
+	static int		img1_slice = 0;
+	static cv::Mat 	img1_hist;
+	static cv::Mat 	img1_roi;
+
+	static int		img2_slice = 0;
+	static cv::Mat	img2_hist;
+	static cv::Mat	img2_roi;
+	
+	static bool show_plot = false;
+	static bool show_plot2 = false;
+	// static bool adding_line2 = false;
+
+
+
+	// ROI Selection
 	{
-        ImGui::Begin("Image Slicing");
-		ImGui::PushItemWidth(100);
+        ImGui::Begin("ROI1 Analysis");
 
-
-
-		ImGui::InputFloat2("U1, V1", pr1arr);
-		ImGui::InputFloat2("U2, V2", pr2arr);
-		if (ImGui::Button("Calculate"))
-		{
-			// Input
-			glm::vec2 pr1(pr1arr[0], pr1arr[1]);
-			glm::vec2 pr2(pr2arr[0], pr2arr[1]);
-			// Find point:
-			glm::vec3 cam1(0.0f, 0.0f, 0.0f);
-			glm::vec3 cam2(-54.0f, 0.0f, 0.0f);
-			float z = 200.0f;
-			float f = z;
-			float b = 54.0f;
-
+		static ImVec2 scrolling(0.0f, 0.0f);
+		static bool adding_line = false;
 		
-			float r = b / (pr1.x - pr2.x);
-			float s = r;
+		static bool opt_enable_context_menu = true;
 
-			m1 = glm::vec3(s * pr1.x, s * pr1.y, s * f);
-			m2 = glm::vec3(b + r * pr2.x, r * pr2.y, r * f);
-			std::cout << "Point1(" << m1.x << ", " << m1.y << ", " << m1.z << ")" << std::endl;
-			std::cout << "Point2(" << m2.x << ", " << m2.y << ", " << m2.z << ")" << std::endl;
-			if (m1 == m2)
-			{
-				points[2]->setPosition(glm::vec3(pr1arr[0]*10, pr1arr[1]*10, z*10));
-				points[3]->setPosition(glm::vec3(pr2arr[0]*10, pr2arr[1]*10, z*10));
-				points[4]->setPosition(m1 * 10.0f);
-				for(int i = 2; i < points.size(); ++i)
-					points[i]->activate();
-				lines[3]->setPosition(cam1 * 10.0f, m1 * 10.0f);
-				lines[4]->setPosition(cam2 * 10.0f, m2 * 10.0f);
-				for(int i = 3; i < lines.size(); ++i)
-					lines[i]->activate();
+		ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
+		ImVec2 canvas_sz = ImVec2(256, 256);   // Resize canvas to what's available
+		ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
 
-			}
-			else
-			{
-				for(int i = 2; i < points.size(); ++i)
-					points[i]->deactivate();
-				for(int i = 3; i < lines.size(); ++i)
-					lines[i]->deactivate();
-			}
-		}
+		ImGuiIO& io = ImGui::GetIO();
+		ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-		ImGui::Text("Camera1(%d, %d, %d)", 0, 0, 0);
-		ImGui::Text("Camera2(%d, %d, %d)", -54, 0, 0);
-		ImGui::Text("Camera1 Projection Point(%d, %d, %d)", (int)pr1arr[0], (int)pr1arr[1], 200);
-		ImGui::Text("Camera2 Projection Point(%d, %d, %d)", (int)pr2arr[0], (int)pr2arr[1], 200);
-		ImGui::Text("Point1(%.2f, %.2f, %.2f)", m1.x, m1.y, m1.z);
-		ImGui::Text("Point2(%.2f, %.2f, %.2f)", m2.x, m2.y, m2.z);
+		ImGui::Image((void*)(intptr_t)textures[0]->getID(), ImVec2(256, 256));
+		
+		// This will catch our interactions
+		const bool is_hovered = ImGui::IsItemHovered(); // Hovered
+		const bool is_active = ImGui::IsItemActive();   // Held
+		const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
+		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
 
-
-		if (ImGui::Button("Rotate") ||
-			ImGui::SliderInt("Rotate X", &x_rot, 0, 360) ||
-			ImGui::SliderInt("Rotate Y", &y_rot, 0, 360) ||
-			ImGui::SliderInt("Rotate Z", &z_rot, 0, 360) ||
-			ImGui::SliderFloat("Scale",  &scale, 0.0f, 1.0f))
+		// // Add first and second point
+		if (is_hovered && !adding_line && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 		{
-			glm::mat4 rot = glm::mat4(1.0f);
-			rot = glm::rotate(rot, (float)(x_rot * M_PI / 180), glm::vec3(1.0f, 0.0f, 0.0f));
-			rot = glm::rotate(rot, (float)(y_rot * M_PI / 180), glm::vec3(0.0f, 1.0f, 0.0f));
-			rot = glm::rotate(rot, (float)(z_rot * M_PI / 180), glm::vec3(0.0f, 0.0f, 1.0f));
-			rot = glm::scale(rot, glm::vec3(scale));
-			glm::mat4 ortho_proj = glm::ortho(-4000.0f, 4000.0f, -4000.0f, 4000.0f, -4000.0f, 4000.0f);
-			rot = ortho_proj * rot;
-			for (size_t i = 0; i < lines.size(); i++)
-				lines[i]->setMVP(rot);
-			for (size_t i = 0; i < points.size(); i++)
-				points[i]->setMVP(rot);
-			texts[0]->setMVP(rot);
+			if (points.Size == 2)
+				points.clear();
+			points.push_back(mouse_pos_in_canvas);
+			points.push_back(mouse_pos_in_canvas);
+			adding_line = true;
 		}
+		if (adding_line)
+		{
+			points.back() = mouse_pos_in_canvas;
+			if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+			{
+
+				adding_line = false;
+			}
+		}
+		// Draw grid + all lines in the canvas
+		draw_list->PushClipRect(canvas_p0, canvas_p1, true);
+		
+		for (int n = 0; n < points.Size; n += 2)
+			draw_list->AddRect(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(255, 255, 0, 255));
+		draw_list->PopClipRect();
+
+		ImGui::Checkbox("Show Plot", &show_plot); ImGui::SameLine();
+		ImGui::Checkbox("Show Statistics", &show_statistics);
+		ImGui::PushItemWidth(100);
+        if (ImGui::SliderInt("Slice1", &img1_slice, 0, 19))
+            textures[0]->reloadFromData((char *)ss.getTransverseSlice(img1_slice), dct.params["width"], dct.params["heigth"], dct.params);
+
+        ImGui::End();
+    }
+
+
+	{
+        ImGui::Begin("ROI2 Analysis");
+
+		static ImVec2 scrolling(0.0f, 0.0f);
+		static bool adding_line = false;
+		static bool opt_enable_context_menu = true;
+
+		ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
+		ImVec2 canvas_sz = ImVec2(256, 256);   // Resize canvas to what's available
+		ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
+
+		ImGuiIO& io = ImGui::GetIO();
+		ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+		ImGui::Image((void*)(intptr_t)textures[1]->getID(), ImVec2(256, 256));
+		
+		// This will catch our interactions
+		const bool is_hovered = ImGui::IsItemHovered(); // Hovered
+		const bool is_active = ImGui::IsItemActive();   // Held
+		const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
+		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
+
+		// // Add first and second point
+		if (is_hovered && !adding_line && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			if (points.Size == 2)
+				points.clear();
+			points.push_back(mouse_pos_in_canvas);
+			points.push_back(mouse_pos_in_canvas);
+			adding_line = true;
+		}
+		if (adding_line)
+		{
+			points.back() = mouse_pos_in_canvas;
+			if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+				adding_line = false;
+		}
+		// Draw grid + all lines in the canvas
+		draw_list->PushClipRect(canvas_p0, canvas_p1, true);
+		
+		for (int n = 0; n < points.Size; n += 2)
+			draw_list->AddRect(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(255, 255, 0, 255));
+		draw_list->PopClipRect();
+
+		ImGui::Checkbox("Show Plot", &show_plot2); ImGui::SameLine();
+		// ImGui::Checkbox("Show Statistics", &show_statistics);
+		ImGui::PushItemWidth(100);
+        if (ImGui::SliderInt("Slice2", &img2_slice, 0, 19))
+            textures[1]->reloadFromData((char *)ss.getTransverseSlice(img2_slice), dct.params["width"], dct.params["heigth"], dct.params);
+
+        ImGui::End();
+    }
+
+	if (show_plot)
+	{
+        ImGui::Begin("Plotter1");
+		if (ImGui::Button("Calculate ROI1 Histogram") && points.Size == 2 && abs(int(points[0].x - points[1].x)) && abs(int(points[0].x - points[1].x)))
+		{
+			img1_roi = cropImage(ss.getTransverseSliceOriginal(img1_slice), points);
+			img1_hist = calculateFrequencies(img1_roi);
+			cts.setROI(img1_roi);
+			cts.setHistogram(img1_hist);
+			img2_roi = cropImage(ss.getTransverseSliceOriginal(img2_slice), points);
+			img2_hist = calculateFrequencies(img2_roi);
+			cts.setData2D(img2_roi, img2_hist);
+			cts.recalculate();
+		}
+		
+		ImPlot::BeginPlot("ROI1 histogram", ImVec2(-1, 0), ImPlotFlags_NoLegend);
+		ImPlot::SetupAxes("Intensity", "Frequency");
+		ImPlot::SetupAxesLimits(0,1500,0,200);
+		ImPlot::PlotBars("Intensity", img1_hist.ptr<int>(0), img1_hist.total(), 5);
+
+		ImPlot::EndPlot();
+        ImGui::End();
+    }
+
+	if (show_plot2)
+	{
+        ImGui::Begin("Plotter2");
+		if (ImGui::Button("Calculate ROI2 Histogram") && points.Size == 2)
+		{
+			img1_roi = cropImage(ss.getTransverseSliceOriginal(img1_slice), points);
+			img1_hist = calculateFrequencies(img1_roi);
+			cts.setROI(img1_roi);
+			cts.setHistogram(img1_hist);
+			img2_roi = cropImage(ss.getTransverseSliceOriginal(img2_slice), points);
+			img2_hist = calculateFrequencies(img2_roi);
+			cts.setData2D(img2_roi, img2_hist);
+			cts.recalculate();
+		}
+		
+		ImPlot::BeginPlot("ROI2 histogram", ImVec2(-1, 0), ImPlotFlags_NoLegend);
+		ImPlot::SetupAxes("Intensity", "Frequency");
+		ImPlot::SetupAxesLimits(0,1500,0,200);
+		ImPlot::PlotBars("Intensity", img2_hist.ptr<int>(0), img2_hist.total(), 5);
+
+		ImPlot::EndPlot();
+        ImGui::End();
+    }
+	// Statistics Calculation
+	if (show_statistics)
+	{
+		float empty = 0;
+		ImGui::Begin("Statistics");
+		ImGui::Text("Mathematical Expectation: %f", cts.getMathExpectation());
+		ImGui::Text("2D Entropy: %f",cts.getEntropy2D());
+		ImGui::Text("2D Energy: %f",cts.getEnergy2D());
+		ImGui::Text("Asymmetry Coefficient: %f", cts.getAsymmetryCoef());
+		ImGui::Text("Mean Absolute Difference: %f", cts.getMeanAbsDiff());
 
 		ImGui::End();
-    }
+	}
 }
 
 void MIA::render()
@@ -367,14 +453,6 @@ void MIA::render()
 
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-	for (size_t i = 0; i < lines.size(); i++)
-		lines[i]->render(shaders[0]);
-	for (size_t i = 0; i < points.size(); i++)
-		points[i]->render(shaders[1]);
-	texts[0]->renderText("X", 4000, 0, 0, 15, glm::vec3(1.0f, 0.0f, 0.0f));
-	texts[0]->renderText("Y", 0, 4000, 0, 15, glm::vec3(0.0f, 1.0f, 0.0f));
-	texts[0]->renderText("Z", 0, 0, 4000, 15, glm::vec3(0.0f, 0.0f, 1.0f));
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	glfwSwapBuffers(window);
