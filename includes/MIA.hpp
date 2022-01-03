@@ -9,6 +9,7 @@
 #include "DicomCT.hpp"
 #include "SetSlicer.hpp"
 #include "CTStatist.hpp"
+#include "TimeConcentration.hpp"
 
 #include "Texture.hpp"
 #include <glm/glm.hpp>
@@ -38,8 +39,9 @@ private:
 
 	// CT data
 	DicomCT dct;
-	SetSlicer<short> ss;
+	SetSlicer<unsigned short> ss;
 	CTStatist cts;
+	TimeConcentration tc;
 	//Private functions
 	void initGLFW();
 	void initWindow(

@@ -10,7 +10,7 @@ DicomCT::DicomCT::~DicomCT()
 {
 	if (this->imageSet)
 	{
-		for (int i = 0; i < l; ++i)
+		for (int i = 0; i < params["time"] * params["length"]; ++i)
 			delete[] this->imageSet[i];
 		delete[] this->imageSet;
 	}
@@ -43,21 +43,26 @@ void		DicomCT::readDicomSet(const std::string &set_path)
 	this->pixelSize = dataHandler.getUnitSize();
 	this->isBytesSigned = dataHandler.isSigned();
 	this->depth = image.getDepth();
-
-	cout <<  "sliceThickness: " << this->sliceThickness << endl; 
-	cout <<  "spaceBetweenSlices: " << this->spaceBetweenSlices << endl; 
-	// cout <<  "intercept: " << intercept << endl; 
-	// cout <<  "slope: " << slope << endl; 
-	// cout << "channelLength: " << channelLength << endl;
-	cout <<  "width: " << this->w << endl; 
-	cout <<  "height: " << this->h << endl; 
-	cout <<  "isBytesSigned: " << this->isBytesSigned << endl; 
-	cout <<  "Pixel size: " << this->pixelSize << endl; 
+	params["time"] = loadedDataSet.getDouble(TagId(0x0020, 0x0105), 0);
+	params["thickness"] = ceil(this->sliceThickness / this->pixelSpacing[0]);
+	params["TE"] = loadedDataSet.getDouble(TagId(0x0018, 0x0081), 0);
+	params["repetitionTime"] = loadedDataSet.getDouble(TagId(0x0018, 0x0080), 0);
+	cout << "sliceThickness: " << this->sliceThickness << endl; 
+	cout << "spaceBetweenSlices: " << this->spaceBetweenSlices << endl; 
+	cout << "Thickness: " << params["thickness"] << endl;
+	cout << "width: " << this->w << endl; 
+	cout << "height: " << this->h << endl; 
+	cout << "isBytesSigned: " << this->isBytesSigned << endl; 
+	cout << "Pixel size: " << this->pixelSize << endl; 
 	cout << "Number of color channels:  " << image.getChannelsNumber() << endl;
 	cout << "Depth: " << (int)this->depth << endl;
+	cout << "Number of Temporal Positions Attribute: " << params["time"] << endl;
+	cout << "Echo time: " << params["TE"] << endl;
+	cout << "Trigger time: " << loadedDataSet.getDouble(TagId(0x0018, 0x1060), 0) << '\t';
+	cout << "Repetition Time: " << params["repetitionTime"] << '\t';
+	cout << "Instance number: " << loadedDataSet.getDouble(TagId(0x0020, 0x0013), 0) << endl;
 	params["width"] = this->w;
 	params["heigth"] = this->h;
-
 	this->readImageSet(set_path);
 	this->setTextureParameters();
 }
@@ -65,7 +70,7 @@ void		DicomCT::readDicomSet(const std::string &set_path)
 void		DicomCT::readImageSet(const std::string &set_path)
 {
 	using namespace std;
-
+	using namespace imebra;
 	vector<std::string> files;
 	
     for (const auto & entry : std::experimental::filesystem::directory_iterator(set_path))
@@ -73,10 +78,10 @@ void		DicomCT::readImageSet(const std::string &set_path)
 	sort(files.begin(), files.end());
 	// for (auto i = files.begin(); i < files.end(); ++i)
     //     std::cout << *i << std::endl;
-	this->l = files.size();
+	this->l = files.size() / params["time"];
 	this->params["length"] = this->l;
-	this->imageSet = new char *[this->l];
-	for (size_t i = 0; i < this->l; ++i)
+	this->imageSet = new char *[params["time"] * params["length"]];
+	for (size_t i = 0; i < params["time"] * params["length"]; ++i)
 	{
 		imebra::DataSet 	loadedDataSet(imebra::CodecFactory::load(files[i]));
 		imebra::Image		image(loadedDataSet.getImage(0));

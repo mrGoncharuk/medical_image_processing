@@ -117,12 +117,13 @@ void MIA::initImGui()
 
 void MIA::initSceneObjects()
 {
-    std::string path = "/home/mhoncharuk/Education/MIA/data/DICOM_set_16bits";
+    std::string path = "/home/mhoncharuk/Education/MIA/data/PWI_680_slices_256x256";
 	dct.readDicomSet(path);
-	ss.init((short **)dct.getImageSet(), dct.params["width"], dct.params["heigth"], dct.params["length"]);
-	this->textures.push_back(new Texture((char *)ss.getTransverseSlice(0), dct.params["width"], dct.params["heigth"], dct.params));
-	this->textures.push_back(new Texture((char *)ss.getTransverseSlice(0), dct.params["width"], dct.params["heigth"], dct.params));
-
+	ss.init((unsigned short **)dct.getImageSet(), dct.params);
+	this->textures.push_back(new Texture((char *)ss.getTransverseSlice(0, 0), dct.params["width"], dct.params["heigth"], dct.params));
+	this->textures.push_back(new Texture((char *)ss.getSagittalSlice(0, 0), dct.params["width"], dct.params["length"]*dct.params["thickness"], dct.params));
+	this->textures.push_back(new Texture((char *)ss.getFrontalSlice(0, 0), dct.params["heigth"], dct.params["length"]*dct.params["thickness"], dct.params));
+    tc.init(dct.params["TE"], dct.params["repetitionTime"]);
 }
 
 //Constructors / Destructors
@@ -182,10 +183,7 @@ void MIA::setWindowShouldClose()
 
 void MIA::updateMouseInput()
 {
-	// if (glfwGetMouseButton(this->window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-	// {
-	// 	std::cout << "Mouse Pressed" << std::endl;
-	// }
+
 }
 
 void MIA::updateKeyboardInput()
@@ -203,46 +201,6 @@ void MIA::updateInput()
 	this->updateMouseInput();
 }
 
-cv::Mat		cropImage(short *img, ImVector<ImVec2> points)
-{
-	float x = points[0].x < points[1].x ? points[0].x : points[1].x;
-	float y = points[0].y < points[1].y ? points[0].y : points[1].y;
-	float w = abs(points[0].x - points[1].x);
-	float h = abs(points[0].y - points[1].y);
-
-
-	std::cout << "x: " << x << " y: " << y << " w: " << w << " h: " << h << std::endl;
-	int histSize = 0;
-	cv::Mat img_hist;
-	cv::Mat image = cv::Mat(256, 256, CV_16SC1, (void *)img);
-	cv::Mat croppedImage = image(cv::Rect(x, y, w, h));
-	cv::Mat croppedImageU16;
-	croppedImage.convertTo(croppedImageU16, CV_16U);
-	
-	return croppedImageU16;
-}
-
-cv::Mat		calculateFrequencies(cv::Mat image)
-{
-	cv::Mat hist;
-	
-	double minVal;
-	double maxVal;
-	cv::Point minLoc; 
-	cv::Point maxLoc;
-	minMaxLoc( image, &minVal, &maxVal, &minLoc, &maxLoc );
-	std::cout << "Max val: " << maxVal << std::endl;
-	int histSize = maxVal;
-	float range[] = { 0,(float)maxVal }; //the upper boundary is exclusive
-	const float* histRange[] = { range };
-	cv::calcHist( &image, 1, 0, cv::Mat(), hist, 1, &histSize, histRange, true, false );
-
-	cv::Mat hist_int;
-	hist.convertTo(hist_int, CV_32S);
-	return hist_int;
-}
-
-
 
 void MIA::update()
 {
@@ -252,199 +210,136 @@ void MIA::update()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-	// ROI Data
-	static ImVector<ImVec2> points;
+	static int transverse_slice = 0;
+    static int transverse_time = 0;
+    static ImVec2 transverse_point(0, 0);
 
-	// Statistics Data
-	static bool show_statistics = false;
+    static int sagittal_slice = 0;
+    static int sagittal_time = 0;
+    static ImVec2 sagittal_point(0, 0);
 
-	// Histogram Data
-	static int		img1_slice = 0;
-	static cv::Mat 	img1_hist;
-	static cv::Mat 	img1_roi;
+    static int frontal_slice = 0;
+    static int frontal_time = 0;
+    static ImVec2 frontal_point(0, 0);
 
-	static int		img2_slice = 0;
-	static cv::Mat	img2_hist;
-	static cv::Mat	img2_roi;
-	
-	static bool show_plot = false;
-	static bool show_plot2 = false;
-	// static bool adding_line2 = false;
-
-
-
-	// ROI Selection
+    static std::vector<double> pointInTime;
+    
 	{
-        ImGui::Begin("ROI1 Analysis");
+        ImGui::Begin("Transverse");
 
-		static ImVec2 scrolling(0.0f, 0.0f);
-		static bool adding_line = false;
-		
-		static bool opt_enable_context_menu = true;
-
-		ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
-		ImVec2 canvas_sz = ImVec2(256, 256);   // Resize canvas to what's available
+        ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
+		ImVec2 canvas_sz = ImVec2(dct.params["width"], dct.params["heigth"]);
 		ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
-
 		ImGuiIO& io = ImGui::GetIO();
-		ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
 		ImGui::Image((void*)(intptr_t)textures[0]->getID(), ImVec2(256, 256));
-		
-		// This will catch our interactions
+
+        // This will catch our interactions
 		const bool is_hovered = ImGui::IsItemHovered(); // Hovered
-		const bool is_active = ImGui::IsItemActive();   // Held
-		const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
-		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
+		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - canvas_p0.x, io.MousePos.y - canvas_p0.y);
+        if (is_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            sagittal_point = ImVec2(0,0);
+            frontal_point = ImVec2(0,0);
+            transverse_point = mouse_pos_in_canvas;
+            pointInTime = ss.getPointInTime(Plane::TRANSVERSE, transverse_slice, transverse_point.x, transverse_point.y);
+            tc.setData(pointInTime);
+        }
 
-		// // Add first and second point
-		if (is_hovered && !adding_line && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-		{
-			if (points.Size == 2)
-				points.clear();
-			points.push_back(mouse_pos_in_canvas);
-			points.push_back(mouse_pos_in_canvas);
-			adding_line = true;
-		}
-		if (adding_line)
-		{
-			points.back() = mouse_pos_in_canvas;
-			if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-			{
-
-				adding_line = false;
-			}
-		}
-		// Draw grid + all lines in the canvas
-		draw_list->PushClipRect(canvas_p0, canvas_p1, true);
-		
-		for (int n = 0; n < points.Size; n += 2)
-			draw_list->AddRect(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(255, 255, 0, 255));
-		draw_list->PopClipRect();
-
-		ImGui::Checkbox("Show Plot", &show_plot); ImGui::SameLine();
-		ImGui::Checkbox("Show Statistics", &show_statistics);
-		ImGui::PushItemWidth(100);
-        if (ImGui::SliderInt("Slice1", &img1_slice, 0, 19))
-            textures[0]->reloadFromData((char *)ss.getTransverseSlice(img1_slice), dct.params["width"], dct.params["heigth"], dct.params);
-
+        ImGui::PushItemWidth(100);
+        if (ImGui::SliderInt("Transverse Slice", &transverse_slice, 0, dct.params["length"] - 1) ||
+            ImGui::SliderInt("Transverse Time", &transverse_time, 0, dct.params["time"] - 1))
+            textures[0]->reloadFromData((char *)ss.getTransverseSlice(transverse_slice, transverse_time), dct.params["width"], dct.params["heigth"], dct.params);
+        ImGui::Text("Transverse Point = (%0.f, %0.f)", transverse_point.x, transverse_point.y);
         ImGui::End();
     }
 
-
 	{
-        ImGui::Begin("ROI2 Analysis");
+        ImGui::Begin("Sagittal");
 
-		static ImVec2 scrolling(0.0f, 0.0f);
-		static bool adding_line = false;
-		static bool opt_enable_context_menu = true;
-
-		ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
-		ImVec2 canvas_sz = ImVec2(256, 256);   // Resize canvas to what's available
+        ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
+		ImVec2 canvas_sz = ImVec2(dct.params["width"], dct.params["heigth"]);
 		ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
-
 		ImGuiIO& io = ImGui::GetIO();
-		ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-		ImGui::Image((void*)(intptr_t)textures[1]->getID(), ImVec2(256, 256));
-		
-		// This will catch our interactions
+		ImGui::Image((void*)(intptr_t)textures[1]->getID(), ImVec2(256, dct.params["length"]*dct.params["thickness"]));
+        // This will catch our interactions
 		const bool is_hovered = ImGui::IsItemHovered(); // Hovered
-		const bool is_active = ImGui::IsItemActive();   // Held
-		const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
-		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
+		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - canvas_p0.x, io.MousePos.y - canvas_p0.y);
+        if (is_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            frontal_point = ImVec2(0,0);
+            transverse_point = ImVec2(0,0);
+            sagittal_point = mouse_pos_in_canvas;
+            pointInTime = ss.getPointInTime(Plane::SAGITTAL, sagittal_slice, sagittal_point.x, sagittal_point.y);
+            tc.setData(pointInTime);
+        }
 
-		// // Add first and second point
-		if (is_hovered && !adding_line && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-		{
-			if (points.Size == 2)
-				points.clear();
-			points.push_back(mouse_pos_in_canvas);
-			points.push_back(mouse_pos_in_canvas);
-			adding_line = true;
-		}
-		if (adding_line)
-		{
-			points.back() = mouse_pos_in_canvas;
-			if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-				adding_line = false;
-		}
-		// Draw grid + all lines in the canvas
-		draw_list->PushClipRect(canvas_p0, canvas_p1, true);
-		
-		for (int n = 0; n < points.Size; n += 2)
-			draw_list->AddRect(ImVec2(origin.x + points[n].x, origin.y + points[n].y), ImVec2(origin.x + points[n + 1].x, origin.y + points[n + 1].y), IM_COL32(255, 255, 0, 255));
-		draw_list->PopClipRect();
-
-		ImGui::Checkbox("Show Plot", &show_plot2); ImGui::SameLine();
-		// ImGui::Checkbox("Show Statistics", &show_statistics);
-		ImGui::PushItemWidth(100);
-        if (ImGui::SliderInt("Slice2", &img2_slice, 0, 19))
-            textures[1]->reloadFromData((char *)ss.getTransverseSlice(img2_slice), dct.params["width"], dct.params["heigth"], dct.params);
-
+        ImGui::PushItemWidth(100);
+        if (ImGui::SliderInt("Sagittal Slice", &sagittal_slice, 0, dct.params["heigth"] - 1) ||
+            ImGui::SliderInt("Sagittal Time", &sagittal_time, 0, dct.params["time"] - 1))
+            textures[1]->reloadFromData((char *)ss.getSagittalSlice(sagittal_slice, sagittal_time), dct.params["heigth"], dct.params["length"]*dct.params["thickness"], dct.params);
+        ImGui::Text("Sagittal Point = (%0.f, %0.f)", sagittal_point.x, sagittal_point.y);
         ImGui::End();
     }
 
-	if (show_plot)
 	{
-        ImGui::Begin("Plotter1");
-		if (ImGui::Button("Calculate ROI1 Histogram") && points.Size == 2 && abs(int(points[0].x - points[1].x)) && abs(int(points[0].x - points[1].x)))
-		{
-			img1_roi = cropImage(ss.getTransverseSliceOriginal(img1_slice), points);
-			img1_hist = calculateFrequencies(img1_roi);
-			cts.setROI(img1_roi);
-			cts.setHistogram(img1_hist);
-			img2_roi = cropImage(ss.getTransverseSliceOriginal(img2_slice), points);
-			img2_hist = calculateFrequencies(img2_roi);
-			cts.setData2D(img2_roi, img2_hist);
-			cts.recalculate();
-		}
-		
-		ImPlot::BeginPlot("ROI1 histogram", ImVec2(-1, 0), ImPlotFlags_NoLegend);
-		ImPlot::SetupAxes("Intensity", "Frequency");
-		ImPlot::SetupAxesLimits(0,1500,0,200);
-		ImPlot::PlotBars("Intensity", img1_hist.ptr<int>(0), img1_hist.total(), 5);
+        ImGui::Begin("Frontal");
+        ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
+		ImVec2 canvas_sz = ImVec2(dct.params["width"], dct.params["heigth"]);
+		ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
+		ImGuiIO& io = ImGui::GetIO();
 
-		ImPlot::EndPlot();
+		ImGui::Image((void*)(intptr_t)textures[2]->getID(), ImVec2(256, dct.params["length"]*dct.params["thickness"]));
+        // This will catch our interactions
+		const bool is_hovered = ImGui::IsItemHovered(); // Hovered
+		const ImVec2 mouse_pos_in_canvas(io.MousePos.x - canvas_p0.x, io.MousePos.y - canvas_p0.y);
+        if (is_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            sagittal_point = ImVec2(0,0);
+            transverse_point = ImVec2(0,0);
+            frontal_point = mouse_pos_in_canvas;
+            pointInTime = ss.getPointInTime(Plane::FRONTAL, frontal_slice, frontal_point.x, frontal_point.y);
+            tc.setData(pointInTime);
+        }
+
+        ImGui::PushItemWidth(100);
+        if (ImGui::SliderInt("Frontal Slice", &frontal_slice, 0, dct.params["width"] - 1) ||
+            ImGui::SliderInt("Frontal Time", &frontal_time, 0, dct.params["time"] - 1))
+            textures[2]->reloadFromData((char *)ss.getFrontalSlice(frontal_slice, frontal_time), dct.params["width"], dct.params["length"]*dct.params["thickness"], dct.params);
+        ImGui::Text("Frontal Point = (%0.f, %0.f)", frontal_point.x, frontal_point.y);
+        
         ImGui::End();
     }
 
-	if (show_plot2)
-	{
-        ImGui::Begin("Plotter2");
-		if (ImGui::Button("Calculate ROI2 Histogram") && points.Size == 2)
-		{
-			img1_roi = cropImage(ss.getTransverseSliceOriginal(img1_slice), points);
-			img1_hist = calculateFrequencies(img1_roi);
-			cts.setROI(img1_roi);
-			cts.setHistogram(img1_hist);
-			img2_roi = cropImage(ss.getTransverseSliceOriginal(img2_slice), points);
-			img2_hist = calculateFrequencies(img2_roi);
-			cts.setData2D(img2_roi, img2_hist);
-			cts.recalculate();
-		}
-		
-		ImPlot::BeginPlot("ROI2 histogram", ImVec2(-1, 0), ImPlotFlags_NoLegend);
-		ImPlot::SetupAxes("Intensity", "Frequency");
-		ImPlot::SetupAxesLimits(0,1500,0,200);
-		ImPlot::PlotBars("Intensity", img2_hist.ptr<int>(0), img2_hist.total(), 5);
 
-		ImPlot::EndPlot();
+    {
+        ImGui::Begin("Time-Conecntration");
+        double xs[40];
+
+        for (int i = 0; i < 40; ++i)
+            xs[i] = i * 1.5;
+        if (pointInTime.size())
+        {
+            ImPlot::BeginPlot("Line Plot");
+            ImPlot::SetupAxes("t(sec)","signal");
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+            ImPlot::PlotLine("TimeConcentration", xs, tc.getCurve().data(), dct.params["time"]);
+            ImPlot::EndPlot();
+        }
+        ImGui::Text("TTA: %f", tc.getTTA());
+        ImGui::Text("baseline: %f", tc.getbaseline());
+        ImGui::Text("PE: %f", tc.getPE());
+        ImGui::Text("TTP: %f", tc.getTTP());
+        ImGui::Text("rTTP: %f", tc.getrTTP());
+        ImGui::Text("FWHM: %f", tc.getFWHM());
+        ImGui::Text("WiR: %f", tc.getWiR());
+        ImGui::Text("WoR: %f", tc.getWoR());
         ImGui::End();
     }
-	// Statistics Calculation
-	if (show_statistics)
-	{
-		float empty = 0;
-		ImGui::Begin("Statistics");
-		ImGui::Text("Mathematical Expectation: %f", cts.getMathExpectation());
-		ImGui::Text("2D Entropy: %f",cts.getEntropy2D());
-		ImGui::Text("2D Energy: %f",cts.getEnergy2D());
-		ImGui::Text("Asymmetry Coefficient: %f", cts.getAsymmetryCoef());
-		ImGui::Text("Mean Absolute Difference: %f", cts.getMeanAbsDiff());
 
-		ImGui::End();
-	}
+	// ROI Data
+	ImGui::ShowDemoWindow();
 }
 
 void MIA::render()

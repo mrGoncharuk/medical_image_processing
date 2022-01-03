@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <cmath>
 #include <experimental/filesystem>
 #include "Graphics.hpp"
 
@@ -27,7 +28,6 @@ public:
 
 	void	readImageSet(const std::string &DICOM_set_path);
 	void	readDicomSet(const std::string &DICOM_set_path);
-	int		normalizeImage(char *image, int w, int h, int bytesStored, bool isBytesSigned);
 	void	setTextureParameters();
 	const std::map<std::string, int> &getParams() const;
 	char **getImageSet();

@@ -11,12 +11,9 @@ SRC = 	glad.c \
 		main.cpp \
 		MIA.cpp \
 		DicomCT.cpp \
-		CTStatist.cpp
+		CTStatist.cpp \
+		TimeConcentration.cpp
 
-# main.cpp \
-# 		DicomCT.cpp \
-# 		glad.c \
-# 		MIA.cpp
 
 
 SOURCES = $(addprefix $(SRC_DIR), $(SRC))
@@ -137,11 +134,12 @@ $(OBJ_DIR)%.o: $(IMGUI_DIR)examples/libs/gl3w/GL/%.c
 	@printf "$(C_MAGENTA)$(NAME):$(C_NONE) %-25s$(C_GREEN)[done]$(C_NONE)\n" $@
 
 clean:
-	@rm -rf $(OBJ_DIR)*
+	@rm -rf $(addprefix $(OBJ_DIR), $(addsuffix .o, $(basename $(notdir $(addprefix $(SRC_DIR), $(SRC))))))
 	@printf "$(C_MAGENTA)$(NAME):$(C_NONE) %-25s$(C_RED)[done]$(C_NONE)\n" $@
 
-fclean: clean
+fclean:
 	@rm -rf $(NAME)
+	@rm -rf $(OBJS)*
 	@printf "$(C_MAGENTA)$(NAME):$(C_NONE) %-25s$(C_RED)[done]$(C_NONE)\n" $@
 
-re: fclean all
+re: clean all
